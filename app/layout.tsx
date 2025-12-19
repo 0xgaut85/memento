@@ -21,15 +21,8 @@ const cormorantGaramond = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "Memento | Real Yield on USDC",
+  title: "memento.money",
   description: "Put your USDC to work safely, simply, on Solana. Market-neutral and income strategies.",
-  icons: {
-    icon: [
-      { url: "/favicon.png", type: "image/png" },
-    ],
-    apple: "/favicon.png",
-    shortcut: "/favicon.png",
-  },
 };
 
 export default function RootLayout({
