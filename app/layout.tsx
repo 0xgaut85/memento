@@ -24,7 +24,11 @@ export const metadata: Metadata = {
   title: "Memento | Real Yield on USDC",
   description: "Put your USDC to work safely, simply, on Solana. Market-neutral and income strategies.",
   icons: {
-    icon: "/favicon.png",
+    icon: [
+      { url: "/favicon.png", type: "image/png" },
+    ],
+    apple: "/favicon.png",
+    shortcut: "/favicon.png",
   },
 };
 
