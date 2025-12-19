@@ -33,11 +33,11 @@ export function FeesToken() {
           </h2>
           <div className="space-y-3 sm:space-y-4 mb-8 lg:mb-10">
             <div className="flex items-baseline gap-3 sm:gap-4">
-              <span className="text-4xl sm:text-5xl md:text-6xl font-mono font-semibold text-black">1%</span>
+              <span className="text-4xl sm:text-5xl md:text-6xl font-mono font-semibold text-black">1.5%</span>
               <span className="text-lg sm:text-xl md:text-2xl text-black/25 font-serif italic">in</span>
             </div>
             <div className="flex items-baseline gap-3 sm:gap-4">
-              <span className="text-4xl sm:text-5xl md:text-6xl font-mono font-semibold text-black">1%</span>
+              <span className="text-4xl sm:text-5xl md:text-6xl font-mono font-semibold text-black">1.5%</span>
               <span className="text-lg sm:text-xl md:text-2xl text-black/25 font-serif italic">out</span>
             </div>
             <p className="text-black/25 font-mono text-xs sm:text-sm">(USDC)</p>
@@ -125,11 +125,11 @@ export function FeesToken() {
                 className="space-y-3 sm:space-y-4 mb-6 lg:mb-10"
               >
                 <div className="flex items-baseline gap-3 sm:gap-4">
-                  <AnimatedCounter value={1} suffix="%" className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-mono font-semibold text-black" />
+                  <AnimatedCounter value={1.5} suffix="%" className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-mono font-semibold text-black" />
                   <span className="text-lg sm:text-xl md:text-2xl text-black/25 font-serif italic">in</span>
                 </div>
                 <div className="flex items-baseline gap-3 sm:gap-4">
-                  <AnimatedCounter value={1} suffix="%" className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-mono font-semibold text-black" />
+                  <AnimatedCounter value={1.5} suffix="%" className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-mono font-semibold text-black" />
                   <span className="text-lg sm:text-xl md:text-2xl text-black/25 font-serif italic">out</span>
                 </div>
                 <p className="text-black/25 font-mono text-xs sm:text-sm">(USDC)</p>
