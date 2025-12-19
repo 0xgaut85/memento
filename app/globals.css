@@ -1,0 +1,250 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
+  
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+}
+
+/* Base Styles */
+:root {
+  --background: oklch(0.99 0 0); /* White */
+  --foreground: oklch(0.1 0 0); /* Black */
+  
+  /* Deep Purple (Gradient Dark) */
+  --primary: oklch(0.30 0.14 285);
+  --primary-foreground: oklch(0.99 0 0);
+  
+  /* Soft Pink/Peach (Gradient Light) */
+  --secondary: oklch(0.85 0.12 15);
+  --secondary-foreground: oklch(0.1 0 0);
+  
+  /* Vibrant Mid-Tone Accent */
+  --accent: oklch(0.55 0.20 325);
+  --accent-foreground: oklch(0.99 0 0);
+  
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.4 0 0);
+  
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.1 0 0);
+  
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.1 0 0);
+  
+  --border: oklch(0.1 0 0); /* High contrast border */
+  --input: oklch(0.9 0 0);
+  --ring: oklch(0.1 0 0);
+  
+  --radius: 0rem; /* Brutalist = sharp corners usually, or very small */
+}
+
+.dark {
+  /* Dark mode not requested but defining for completeness if needed later */
+  --background: oklch(0.1 0 0);
+  --foreground: oklch(0.99 0 0);
+  
+  --primary: oklch(0.6 0.199 265.638);
+  --primary-foreground: oklch(0.1 0 0);
+  
+  --secondary: oklch(0.2 0.05 342.392);
+  --secondary-foreground: oklch(0.99 0 0);
+  
+  --accent: oklch(0.6 0.206 3.058);
+  --accent-foreground: oklch(0.1 0 0);
+  
+  --muted: oklch(0.2 0 0);
+  --muted-foreground: oklch(0.6 0 0);
+  
+  --card: oklch(0.15 0 0);
+  --card-foreground: oklch(0.99 0 0);
+  
+  --popover: oklch(0.15 0 0);
+  --popover-foreground: oklch(0.99 0 0);
+  
+  --border: oklch(0.8 0 0);
+  --input: oklch(0.2 0 0);
+  --ring: oklch(0.8 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    position: relative;
+    overflow-x: hidden;
+    /* Grain as background texture (does NOT overlay or affect video/image contrast) */
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.06'/%3E%3C/svg%3E");
+    background-size: 240px 240px;
+    background-repeat: repeat;
+  }
+}
+
+@layer utilities {
+  .shadow-brutalist {
+    box-shadow: 4px 4px 0px 0px var(--foreground);
+  }
+  .shadow-brutalist-sm {
+    box-shadow: 2px 2px 0px 0px var(--foreground);
+  }
+  .shadow-brutalist-lg {
+    box-shadow: 8px 8px 0px 0px var(--foreground);
+  }
+  
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  /* Premium shadow utilities */
+  .shadow-premium {
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06),
+      0 10px 40px -10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .shadow-premium-lg {
+    box-shadow: 
+      0 10px 25px -5px rgba(0, 0, 0, 0.1),
+      0 8px 10px -6px rgba(0, 0, 0, 0.05),
+      0 25px 80px -20px rgba(0, 0, 0, 0.15);
+  }
+  
+  .shadow-glow-purple {
+    box-shadow: 
+      0 0 40px -10px rgba(168, 85, 247, 0.4),
+      0 0 80px -20px rgba(168, 85, 247, 0.2);
+  }
+  
+  .shadow-glow-pink {
+    box-shadow: 
+      0 0 40px -10px rgba(236, 72, 153, 0.4),
+      0 0 80px -20px rgba(236, 72, 153, 0.2);
+  }
+  
+  /* Gradient text */
+  .text-gradient-purple {
+    background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #a855f7 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Letter spacing animation */
+  .hover-letter-spacing {
+    transition: letter-spacing 0.3s ease;
+  }
+  .hover-letter-spacing:hover {
+    letter-spacing: 0.05em;
+  }
+}
+
+/* Gradient animation keyframes */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.animate-gradient {
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* Shimmer effect */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+/* Float animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Pulse glow */
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 20px -5px rgba(168, 85, 247, 0.3);
+  }
+  50% { 
+    box-shadow: 0 0 40px -5px rgba(168, 85, 247, 0.5);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Scroll animation for carousel */
+@keyframes scroll {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+.animate-scroll {
+  animation: scroll 20s linear infinite;
+}
+
+/* Border gradient animation */
+@keyframes border-gradient {
+  0%, 100% { border-color: rgba(168, 85, 247, 0.5); }
+  50% { border-color: rgba(236, 72, 153, 0.5); }
+}
+
+.animate-border-gradient {
+  animation: border-gradient 3s ease infinite;
+}
+
+/* Hide default cursor on desktop when custom cursor is active */
+@media (min-width: 1024px) {
+  body.custom-cursor-active {
+    cursor: none;
+  }
+  body.custom-cursor-active a,
+  body.custom-cursor-active button,
+  body.custom-cursor-active [role="button"] {
+    cursor: none;
+  }
+}
