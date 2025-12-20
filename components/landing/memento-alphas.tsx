@@ -7,7 +7,6 @@ import { ComingSoonDialog, useComingSoon } from "@/components/landing/coming-soo
 import { useRef } from "react";
 import { GlitchImage } from "@/components/ui/glitch-image";
 import { GlitchText } from "@/components/ui/glitch-text";
-import { AnimatedCounter } from "@/components/ui/animated-counter";
 
 export function MementoAlphas() {
   const { open, setOpen, showComingSoon } = useComingSoon();
@@ -96,10 +95,15 @@ export function MementoAlphas() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.2 }}
-                className="mb-10 border-l border-black/10 pl-6"
+                className="mb-8 border-l border-black/10 pl-6"
               >
-                <AnimatedCounter value={0.1} suffix="%" className="text-5xl md:text-6xl font-mono font-semibold text-black" />
-                <span className="text-base text-black/30 font-mono ml-2">of $MM supply</span>
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-5xl md:text-6xl font-mono font-semibold text-black">50</span>
+                  <span className="text-2xl md:text-3xl font-mono font-semibold text-black/60">$USDC</span>
+                </div>
+                <p className="text-sm text-black/40 leading-relaxed max-w-sm">
+                  Powered by <span className="font-semibold text-black/60">x402</span> — half goes to $MM buyback & burns, half to protocol treasury. Built for the AI agent era.
+                </p>
               </motion.div>
 
               <motion.div

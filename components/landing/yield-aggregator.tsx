@@ -4,7 +4,6 @@ import { motion, useScroll, useTransform, useMotionValueEvent } from "framer-mot
 import { Button } from "@/components/ui/button";
 import { ComingSoonDialog, useComingSoon } from "@/components/landing/coming-soon-dialog";
 import { GlitchText } from "@/components/ui/glitch-text";
-import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { useRef, useState } from "react";
 import Image from "next/image";
 
@@ -106,10 +105,16 @@ export function YieldAggregator() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.2 }}
-                className="mb-10 border-l border-white/15 pl-6"
+                className="mb-8 border-l border-white/15 pl-6"
               >
-                <AnimatedCounter value={0.05} suffix="%" className="text-5xl md:text-6xl font-mono font-semibold text-white" />
-                <span className="text-base text-white/30 font-mono ml-2">of $MM supply</span>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-5xl md:text-6xl font-mono font-semibold text-white">5</span>
+                  <span className="text-2xl md:text-3xl font-mono font-semibold text-white/60">$USDC</span>
+                </div>
+                <div className="text-xs font-mono uppercase text-white/40 tracking-wider mb-3">24h access</div>
+                <p className="text-sm text-white/40 leading-relaxed max-w-sm">
+                  Powered by <span className="font-semibold text-white/60">x402</span> — half goes to $MM buyback & burns, half to protocol treasury. Built for the AI agent era.
+                </p>
               </motion.div>
 
               <motion.div 
