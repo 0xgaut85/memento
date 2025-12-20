@@ -102,7 +102,7 @@ export function MementoAlphas() {
                   <span className="text-2xl md:text-3xl font-mono font-semibold text-black/60">$USDC</span>
                 </div>
                 <p className="text-sm text-black/40 leading-relaxed max-w-sm">
-                  Powered by <span className="font-semibold text-black/60">x402</span> — half goes to $MM buyback & burns, half to protocol treasury. Built for the AI agent era.
+                  The next million DeFi users won't be humans, they'll be AI agents. By integrating <span className="font-semibold text-black/60">x402</span> payment rails, we're unlocking a market most protocols can't even reach yet. 50% of every payment burns $MM, 50% grows treasury.
                 </p>
               </motion.div>
 

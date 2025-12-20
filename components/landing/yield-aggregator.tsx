@@ -113,7 +113,7 @@ export function YieldAggregator() {
                 </div>
                 <div className="text-xs font-mono uppercase text-white/40 tracking-wider mb-3">24h access</div>
                 <p className="text-sm text-white/40 leading-relaxed max-w-sm">
-                  Powered by <span className="font-semibold text-white/60">x402</span> — half goes to $MM buyback & burns, half to protocol treasury. Built for the AI agent era.
+                  AI agents are set to become the dominant force in DeFi. <span className="font-semibold text-white/60">x402</span> lets them pay seamlessly, and every transaction strengthens the protocol: half burns $MM, half builds treasury.
                 </p>
               </motion.div>
 
