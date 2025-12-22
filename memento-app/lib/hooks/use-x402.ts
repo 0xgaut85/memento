@@ -5,11 +5,13 @@
  * Exactly as per x402-solana README: https://github.com/PayAINetwork/x402-solana
  * 
  * Uses native Solana Wallet Adapter for wallet connection and transaction signing
+ * 
+ * Note: This hook requires WalletProvider context. Use within components that
+ * are children of SolanaWalletProvider.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { createX402Client } from '@payai/x402-solana/client';
 
 // x402 Server URL
 const X402_SERVER_URL = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'https://x402.memento.money';
@@ -48,25 +50,41 @@ interface PaymentResponse {
   };
 }
 
+// Default return value for SSR/no-context scenarios
+const defaultReturn = {
+  checkAccess: async () => ({ hasAccess: false }),
+  requestAccess: async () => ({ success: false, accessGranted: false, error: 'Wallet not available' }),
+  isLoading: false,
+  error: null,
+  isConnected: false,
+  publicKey: undefined,
+};
+
 export function useX402() {
+  // Track if we're on client side
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Native Solana wallet adapter - exactly as per x402-solana README
   const wallet = useWallet();
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Connection state from native adapter
-  const isConnected = wallet.connected;
-  const address = wallet.publicKey?.toString();
+  // Connection state from native adapter (only after mount)
+  const isConnected = mounted && wallet.connected;
+  const address = mounted ? wallet.publicKey?.toString() : undefined;
 
-  // Create x402 client - exactly as per x402-solana README
-  // https://github.com/PayAINetwork/x402-solana#option-1-using-solana-wallet-adapter-recommended
-  const x402Client = useMemo(() => {
+  // Create x402 client factory - exactly as per x402-solana README
+  const createX402ClientFactory = useCallback(async () => {
     if (!wallet.connected || !wallet.publicKey || !wallet.signTransaction) {
       return null;
     }
 
-    // Create x402 client exactly as shown in docs
+    const { createX402Client } = await import('@payai/x402-solana/client');
     return createX402Client({
       wallet: {
         address: wallet.publicKey.toString(),
@@ -105,12 +123,9 @@ export function useX402() {
   }, [address]);
 
   // Request access (triggers x402 payment flow)
-  // Exactly as per x402-solana README: client.fetch handles 402 payments automatically
   const requestAccess = useCallback(async (accessType: 'human' | 'agent' = 'human'): Promise<PaymentResponse> => {
-    if (!x402Client || !address) {
-      const errorMsg = !wallet.connected 
-        ? 'Please connect your Solana wallet first.'
-        : 'Wallet not ready for payments. Please reconnect.';
+    if (!isConnected || !address) {
+      const errorMsg = 'Please connect your Solana wallet first.';
       setError(errorMsg);
       return { success: false, accessGranted: false, error: errorMsg };
     }
@@ -119,9 +134,15 @@ export function useX402() {
     setError(null);
 
     try {
+      // Create the client dynamically
+      const client = await createX402ClientFactory();
+      
+      if (!client) {
+        throw new Error('Wallet not ready for payments. Please reconnect.');
+      }
+      
       // Make a paid request - automatically handles 402 payments
-      // As per x402-solana README: https://github.com/PayAINetwork/x402-solana#option-1-using-solana-wallet-adapter-recommended
-      const response = await x402Client.fetch(`${X402_SERVER_URL}/aggregator/solana`, {
+      const response = await client.fetch(`${X402_SERVER_URL}/aggregator/solana`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -145,7 +166,7 @@ export function useX402() {
     } finally {
       setIsLoading(false);
     }
-  }, [x402Client, address, wallet.connected]);
+  }, [isConnected, address, createX402ClientFactory]);
 
   return {
     checkAccess,

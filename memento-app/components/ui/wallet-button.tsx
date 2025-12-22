@@ -7,25 +7,32 @@
  * Uses WalletMultiButton for connection UI
  */
 
-import { useWallet } from '@solana/wallet-adapter-react';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import dynamic from 'next/dynamic';
+
+// Dynamically import the wallet button to prevent SSR issues
+const WalletMultiButtonDynamic = dynamic(
+  async () => (await import('@solana/wallet-adapter-react-ui')).WalletMultiButton,
+  { ssr: false, loading: () => <WalletButtonPlaceholder /> }
+);
+
+function WalletButtonPlaceholder() {
+  return (
+    <button
+      className="px-4 py-2.5 bg-pink-100 text-pink-800 rounded-xl font-medium text-sm"
+      disabled
+    >
+      Connect Wallet
+    </button>
+  );
+}
 
 export function WalletButton() {
-  const { publicKey, connected } = useWallet();
-
-  // Format address for display
-  const formatAddress = (addr: string) => {
-    if (!addr) return '';
-    return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
-  };
-
-  // Use the native WalletMultiButton with custom styling
   return (
     <div className="wallet-adapter-button-wrapper">
-      <WalletMultiButton 
+      <WalletMultiButtonDynamic 
         style={{
-          backgroundColor: connected ? '#d1fae5' : '#fce7f3',
-          color: connected ? '#065f46' : '#9d174d',
+          backgroundColor: '#fce7f3',
+          color: '#9d174d',
           borderRadius: '0.75rem',
           fontWeight: 500,
           fontSize: '0.875rem',
@@ -35,8 +42,6 @@ export function WalletButton() {
       />
       <style jsx global>{`
         .wallet-adapter-button-wrapper .wallet-adapter-button {
-          background-color: ${connected ? '#d1fae5' : '#fce7f3'} !important;
-          color: ${connected ? '#065f46' : '#9d174d'} !important;
           border-radius: 0.75rem !important;
           font-weight: 500 !important;
           font-size: 0.875rem !important;
@@ -44,8 +49,19 @@ export function WalletButton() {
           padding: 0 1rem !important;
           transition: all 0.2s ease !important;
         }
-        .wallet-adapter-button-wrapper .wallet-adapter-button:hover {
-          background-color: ${connected ? '#a7f3d0' : '#fbcfe8'} !important;
+        .wallet-adapter-button-wrapper .wallet-adapter-button:not(.wallet-adapter-button-trigger) {
+          background-color: #fce7f3 !important;
+          color: #9d174d !important;
+        }
+        .wallet-adapter-button-wrapper .wallet-adapter-button:not(.wallet-adapter-button-trigger):hover {
+          background-color: #fbcfe8 !important;
+        }
+        .wallet-adapter-button-wrapper .wallet-adapter-button.wallet-adapter-button-trigger {
+          background-color: #d1fae5 !important;
+          color: #065f46 !important;
+        }
+        .wallet-adapter-button-wrapper .wallet-adapter-button.wallet-adapter-button-trigger:hover {
+          background-color: #a7f3d0 !important;
         }
         .wallet-adapter-button-wrapper .wallet-adapter-button-start-icon {
           margin-right: 0.5rem !important;
