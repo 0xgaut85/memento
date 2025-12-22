@@ -2,13 +2,13 @@
 
 /**
  * useX402 Hook - x402 payment integration
- * Uses native Solana Wallet Adapter for transaction signing
- * Reown handles the connection UI, native adapter handles signing
+ * Exactly as per x402-solana README: https://github.com/PayAINetwork/x402-solana
+ * 
+ * Uses native Solana Wallet Adapter for wallet connection and transaction signing
  */
 
 import { useState, useCallback, useMemo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { useAppKitAccount } from '@reown/appkit/react';
 import { createX402Client } from '@payai/x402-solana/client';
 
 // x402 Server URL
@@ -49,22 +49,19 @@ interface PaymentResponse {
 }
 
 export function useX402() {
-  // Native Solana wallet adapter - for transaction signing
+  // Native Solana wallet adapter - exactly as per x402-solana README
   const wallet = useWallet();
-  
-  // Reown Solana account - for connection state
-  const solanaAccount = useAppKitAccount({ namespace: 'solana' });
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Prefer native adapter (has signTransaction), fallback to Reown for display
-  const isConnected = wallet.connected || solanaAccount.isConnected;
-  const address = wallet.publicKey?.toString() || solanaAccount.address;
+  // Connection state from native adapter
+  const isConnected = wallet.connected;
+  const address = wallet.publicKey?.toString();
 
-  // Create x402 client - requires native wallet adapter with signTransaction
+  // Create x402 client - exactly as per x402-solana README
+  // https://github.com/PayAINetwork/x402-solana#option-1-using-solana-wallet-adapter-recommended
   const x402Client = useMemo(() => {
-    // x402-solana requires native wallet adapter with signTransaction
     if (!wallet.connected || !wallet.publicKey || !wallet.signTransaction) {
       return null;
     }
@@ -108,6 +105,7 @@ export function useX402() {
   }, [address]);
 
   // Request access (triggers x402 payment flow)
+  // Exactly as per x402-solana README: client.fetch handles 402 payments automatically
   const requestAccess = useCallback(async (accessType: 'human' | 'agent' = 'human'): Promise<PaymentResponse> => {
     if (!x402Client || !address) {
       const errorMsg = !wallet.connected 
@@ -121,7 +119,8 @@ export function useX402() {
     setError(null);
 
     try {
-      // Make paid request - automatically handles 402 payments
+      // Make a paid request - automatically handles 402 payments
+      // As per x402-solana README: https://github.com/PayAINetwork/x402-solana#option-1-using-solana-wallet-adapter-recommended
       const response = await x402Client.fetch(`${X402_SERVER_URL}/aggregator/solana`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -1,41 +1,17 @@
 'use client';
 
 /**
- * WalletButton - Uses Reown AppKit for connection UI
- * and native Solana adapter for actual wallet operations
+ * WalletButton - Uses native Solana Wallet Adapter
+ * Exactly as per x402-solana README: https://github.com/PayAINetwork/x402-solana
+ * 
+ * Uses WalletMultiButton for connection UI
  */
 
-import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { Wallet, LogOut, ChevronDown } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 export function WalletButton() {
-  // Reown AppKit hooks
-  const { open } = useAppKit();
-  const solanaAccount = useAppKitAccount({ namespace: 'solana' });
-  const { disconnect: disconnectReown } = useDisconnect();
-  
-  // Native Solana wallet adapter (for x402 compatibility)
-  const { publicKey, connected, disconnect: disconnectNative } = useWallet();
-  
-  const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Prefer native adapter, fallback to Reown
-  const isConnected = connected || solanaAccount.isConnected;
-  const address = publicKey?.toBase58() || solanaAccount.address;
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const { publicKey, connected } = useWallet();
 
   // Format address for display
   const formatAddress = (addr: string) => {
@@ -43,69 +19,83 @@ export function WalletButton() {
     return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
   };
 
-  // Open Reown modal
-  const handleConnect = () => {
-    open();
-  };
-
-  const handleDisconnect = async () => {
-    try {
-      if (connected) {
-        await disconnectNative();
-      }
-      if (solanaAccount.isConnected) {
-        await disconnectReown();
-      }
-    } catch (e) {
-      console.error('Disconnect error:', e);
-    }
-    setShowDropdown(false);
-  };
-
-  if (!isConnected || !address) {
-    return (
-      <button
-        onClick={handleConnect}
-        className="flex items-center gap-2 px-4 py-2.5 bg-pink-200 text-pink-800 hover:bg-pink-300 rounded-xl font-medium transition-colors"
-      >
-        <Wallet className="w-4 h-4" />
-        <span>Connect Wallet</span>
-      </button>
-    );
-  }
-
+  // Use the native WalletMultiButton with custom styling
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setShowDropdown(!showDropdown)}
-        className="flex items-center gap-2 px-4 py-2.5 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded-xl font-medium transition-colors"
-      >
-        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-        <span>{formatAddress(address)}</span>
-        <ChevronDown className={`w-4 h-4 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
-      </button>
-
-      {showDropdown && (
-        <div className="absolute right-0 top-full mt-2 w-48 bg-white/90 backdrop-blur-xl border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
-          <button
-            onClick={() => {
-              open({ view: 'Account' });
-              setShowDropdown(false);
-            }}
-            className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-          >
-            <Wallet className="w-4 h-4" />
-            Account Details
-          </button>
-          <button
-            onClick={handleDisconnect}
-            className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100"
-          >
-            <LogOut className="w-4 h-4" />
-            Disconnect
-          </button>
-        </div>
-      )}
+    <div className="wallet-adapter-button-wrapper">
+      <WalletMultiButton 
+        style={{
+          backgroundColor: connected ? '#d1fae5' : '#fce7f3',
+          color: connected ? '#065f46' : '#9d174d',
+          borderRadius: '0.75rem',
+          fontWeight: 500,
+          fontSize: '0.875rem',
+          height: '2.75rem',
+          padding: '0 1rem',
+        }}
+      />
+      <style jsx global>{`
+        .wallet-adapter-button-wrapper .wallet-adapter-button {
+          background-color: ${connected ? '#d1fae5' : '#fce7f3'} !important;
+          color: ${connected ? '#065f46' : '#9d174d'} !important;
+          border-radius: 0.75rem !important;
+          font-weight: 500 !important;
+          font-size: 0.875rem !important;
+          height: 2.75rem !important;
+          padding: 0 1rem !important;
+          transition: all 0.2s ease !important;
+        }
+        .wallet-adapter-button-wrapper .wallet-adapter-button:hover {
+          background-color: ${connected ? '#a7f3d0' : '#fbcfe8'} !important;
+        }
+        .wallet-adapter-button-wrapper .wallet-adapter-button-start-icon {
+          margin-right: 0.5rem !important;
+        }
+        .wallet-adapter-dropdown {
+          z-index: 1000 !important;
+        }
+        .wallet-adapter-dropdown-list {
+          background-color: white !important;
+          border: 1px solid #e5e7eb !important;
+          border-radius: 0.75rem !important;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+          overflow: hidden !important;
+        }
+        .wallet-adapter-dropdown-list-item {
+          background-color: white !important;
+          color: #374151 !important;
+          padding: 0.75rem 1rem !important;
+          font-size: 0.875rem !important;
+        }
+        .wallet-adapter-dropdown-list-item:hover {
+          background-color: #f3f4f6 !important;
+        }
+        .wallet-adapter-modal-wrapper {
+          background-color: rgba(0, 0, 0, 0.8) !important;
+          backdrop-filter: blur(4px) !important;
+        }
+        .wallet-adapter-modal-container {
+          background-color: white !important;
+          border-radius: 1rem !important;
+          box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25) !important;
+        }
+        .wallet-adapter-modal-title {
+          color: #111827 !important;
+          font-weight: 700 !important;
+        }
+        .wallet-adapter-modal-list li {
+          margin-bottom: 0.5rem !important;
+        }
+        .wallet-adapter-modal-list .wallet-adapter-button {
+          background-color: #f9fafb !important;
+          color: #111827 !important;
+          border-radius: 0.75rem !important;
+          border: 1px solid #e5e7eb !important;
+        }
+        .wallet-adapter-modal-list .wallet-adapter-button:hover {
+          background-color: #f3f4f6 !important;
+          border-color: #d1d5db !important;
+        }
+      `}</style>
     </div>
   );
 }

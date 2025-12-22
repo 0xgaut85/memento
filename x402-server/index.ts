@@ -7,6 +7,8 @@
  * 
  * Uses official @payai/x402-solana v2 from PayAI Network
  * Docs: https://github.com/PayAINetwork/x402-solana
+ * 
+ * DISCOVERABLE: This server implements x402 protocol v2 for AI agent discovery
  */
 
 import { config } from 'dotenv';
@@ -28,7 +30,7 @@ const solanaRpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.sol
 const serverPublicUrl = process.env.X402_PUBLIC_URL || 'https://x402.memento.money';
 const mementoAppUrl = process.env.MEMENTO_APP_URL || 'https://app.memento.money';
 
-// USDC Mint addresses
+// USDC Mint addresses - exactly as per x402-solana README
 const USDC_MINT_MAINNET = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const USDC_MINT_DEVNET = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
 
@@ -37,7 +39,8 @@ const USDC_MINT = process.env.NODE_ENV === 'development' ? USDC_MINT_DEVNET : US
 const NETWORK = process.env.NODE_ENV === 'development' ? 'solana-devnet' : 'solana';
 
 // Price: $5 USDC = 5,000,000 micro-units (6 decimals)
-const AGGREGATOR_PRICE = '5000000';
+// As per x402-solana README: Payment amounts are in USDC micro-units (6 decimals) as strings
+const AGGREGATOR_PRICE = '5000000'; // $5 USDC
 const AGGREGATOR_PRICE_USD = 5.00;
 
 if (!treasuryAddress) {
@@ -88,6 +91,40 @@ app.get('/favicon.png', (_req, res) => {
   res.redirect('/public/favicon.png');
 });
 
+// --- x402 DISCOVERY ENDPOINT ---
+// Makes this aggregator discoverable by AI agents using x402 protocol
+app.get('/.well-known/x402', (_req, res) => {
+  res.json({
+    version: '2.0',
+    name: 'Memento Stablecoin Yield Aggregator',
+    description: 'AI-curated stablecoin yield opportunities across DeFi protocols. Pay $5 USDC for 24hr access (humans) or per-call access (AI agents).',
+    endpoints: [
+      {
+        path: '/aggregator/solana',
+        method: 'POST',
+        description: 'Access the Memento Stablecoin Yield Aggregator. Returns top yield opportunities.',
+        price: {
+          amount: AGGREGATOR_PRICE,
+          currency: 'USDC',
+          decimals: 6,
+          usd: AGGREGATOR_PRICE_USD,
+        },
+        network: NETWORK,
+        accessType: {
+          human: '24hr access after payment',
+          agent: 'Per-call access, returns top 5 safe + top 5 degen pools',
+        },
+      },
+    ],
+    treasury: treasuryAddress,
+    facilitator: facilitatorUrl,
+    contact: {
+      website: 'https://memento.money',
+      app: 'https://app.memento.money',
+    },
+  });
+});
+
 // Landing page
 app.get('/', (_req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -117,6 +154,7 @@ app.get('/', (_req, res) => {
       .pill { padding: 10px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.15); color: #d1d5db; text-decoration: none; transition: all 0.2s ease; font-size: 14px; background: rgba(255,255,255,0.05); }
       .pill:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: #fff; }
       .price { background: rgba(236, 72, 153, 0.15); color: #f472b6; border-color: rgba(236, 72, 153, 0.3); }
+      .x402 { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3); }
       .footer { font-size: 12px; color: #6b7280; }
       .footer a { color: #9ca3af; text-decoration: none; }
       .footer a:hover { color: #fff; }
@@ -130,6 +168,7 @@ app.get('/', (_req, res) => {
       <div class="grid">
         <a class="pill" href="/health">Health</a>
         <a class="pill" href="/aggregator/solana">Aggregator API</a>
+        <a class="pill x402" href="/.well-known/x402">x402 Discovery</a>
         <span class="pill price">$5 USDC / 24hr access</span>
       </div>
       <p class="footer">
@@ -231,9 +270,10 @@ app.post('/aggregator/solana', async (req, res) => {
     const paymentHeader = x402Handler.extractPayment(req.headers as Record<string, string | string[] | undefined>);
     
     // 2. Create payment requirements - v2 API
+    // As per x402-solana README: amount is in micro-units as string
     const paymentRequirements = await x402Handler.createPaymentRequirements(
       {
-        amount: AGGREGATOR_PRICE, // $5 USDC in micro-units (string)
+        amount: AGGREGATOR_PRICE, // $5 USDC = '5000000' micro-units
         asset: {
           address: USDC_MINT,
           decimals: 6,
@@ -475,4 +515,5 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 app.listen(PORT, () => {
   console.log(`[x402-server] Memento server running on port ${PORT}`);
   console.log(`[x402-server] Aggregator price: $${AGGREGATOR_PRICE_USD} USDC`);
+  console.log(`[x402-server] Discovery endpoint: ${serverPublicUrl}/.well-known/x402`);
 });

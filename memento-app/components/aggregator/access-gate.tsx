@@ -2,13 +2,15 @@
 
 /**
  * AccessGate - Payment wall for Aggregator access
- * Uses Reown for connection UI, native Solana adapter for x402 payments
+ * Uses native Solana Wallet Adapter for connection and x402 payments
+ * As per x402-solana README: https://github.com/PayAINetwork/x402-solana
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useX402 } from '@/lib/hooks/use-x402';
-import { useAppKit } from '@reown/appkit/react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { ArrowRight, Loader2, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 
@@ -18,7 +20,9 @@ interface AccessGateProps {
 
 export function AccessGate({ children }: AccessGateProps) {
   const { checkAccess, requestAccess, isLoading, error, isConnected, publicKey } = useX402();
-  const { open } = useAppKit();
+  const { setVisible } = useWalletModal();
+  const wallet = useWallet();
+  
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [remainingHours, setRemainingHours] = useState<number | null>(null);
@@ -66,9 +70,9 @@ export function AccessGate({ children }: AccessGateProps) {
     }
   };
 
-  // Open Reown wallet modal
+  // Open native Solana wallet modal
   const handleConnectWallet = () => {
-    open();
+    setVisible(true);
   };
 
   // Loading state
