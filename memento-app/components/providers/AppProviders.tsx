@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useMemo } from 'react';
+import { ReactNode, useMemo, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
@@ -24,12 +24,34 @@ export function AppProviders({ children }: AppProvidersProps) {
   const endpoint = useMemo(() => SOLANA_RPC_URL, []);
   
   const wallets = useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-    ],
+    () => {
+      // #region agent log
+      console.log('[DBG:PROVIDER] Creating wallet adapters');
+      // #endregion
+      try {
+        const adapters = [
+          new PhantomWalletAdapter(),
+          new SolflareWalletAdapter(),
+        ];
+        // #region agent log
+        console.log('[DBG:PROVIDER] Wallet adapters created', { count: adapters.length, names: adapters.map(w => w.name) });
+        // #endregion
+        return adapters;
+      } catch (err) {
+        // #region agent log
+        console.error('[DBG:PROVIDER] Failed to create wallet adapters', err);
+        // #endregion
+        return [];
+      }
+    },
     []
   );
+
+  // #region agent log
+  useEffect(() => {
+    console.log('[DBG:PROVIDER] AppProviders mounted', { endpoint, walletsCount: wallets.length });
+  }, [endpoint, wallets]);
+  // #endregion
 
   return (
     <QueryClientProvider client={queryClient}>

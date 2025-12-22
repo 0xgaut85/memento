@@ -6,12 +6,23 @@ import { Wallet, LogOut, ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 export function WalletButton() {
-  const { publicKey, connected, disconnect } = useWallet();
-  const { setVisible } = useWalletModal();
+  const { publicKey, connected, disconnect, wallets, connecting } = useWallet();
+  const { setVisible, visible } = useWalletModal();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const address = publicKey?.toBase58();
+
+  // #region agent log
+  console.log('[DBG:WALLET] WalletButton state', {
+    connected,
+    connecting,
+    hasPublicKey: !!publicKey,
+    address: address?.slice(0, 8),
+    walletsCount: wallets?.length,
+    modalVisible: visible,
+  });
+  // #endregion
 
   // Close dropdown when clicking outside
   useEffect(() => {
