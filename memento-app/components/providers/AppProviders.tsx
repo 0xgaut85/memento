@@ -1,10 +1,13 @@
 'use client';
 
+/**
+ * AppProviders - Solana Wallet Adapter setup
+ * Following official @payai/x402-solana docs exactly
+ * https://github.com/PayAINetwork/x402-solana
+ */
+
 import { ReactNode, useMemo } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createAppKit } from '@reown/appkit/react';
-import { solana } from '@reown/appkit/networks';
-import { SolanaAdapter } from '@reown/appkit-adapter-solana/react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
@@ -16,34 +19,8 @@ import '@solana/wallet-adapter-react-ui/styles.css';
 // Create query client for React Query
 const queryClient = new QueryClient();
 
-// Solana RPC URL
+// Solana RPC URL (Helius mainnet)
 const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
-
-// Project ID from Reown Cloud
-const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || 'a7872db4a69c8c1b91b3ef751f119bd0';
-
-// Create Solana adapter for Reown
-const solanaAdapter = new SolanaAdapter();
-
-// Create App Kit with Solana only
-createAppKit({
-  adapters: [solanaAdapter],
-  networks: [solana],
-  defaultNetwork: solana,
-  projectId,
-  metadata: {
-    name: 'Memento',
-    description: 'A new global privacy focused standard for earning yield on stablecoins',
-    url: 'https://app.memento.money',
-    icons: ['https://memento.money/transparentlogo.png'],
-  },
-  features: {
-    analytics: false,
-    email: false,
-    socials: false,
-  },
-  themeMode: 'light',
-});
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -52,7 +29,7 @@ interface AppProvidersProps {
 export function AppProviders({ children }: AppProvidersProps) {
   const endpoint = useMemo(() => SOLANA_RPC_URL, []);
   
-  // Initialize individual wallet adapters (no heavy bundle)
+  // Initialize wallet adapters exactly as per docs
   const wallets = useMemo(
     () => [
       new PhantomWalletAdapter(),

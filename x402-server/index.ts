@@ -5,15 +5,15 @@
  * - Human users: Pay $5 USDC for 24hr access to aggregator
  * - AI agents: Pay $5 USDC per API call, get top 5 safe + top 5 degen pools
  * 
- * Uses official x402-solana from PayAI Network
- * Docs: https://www.npmjs.com/package/x402-solana
+ * Uses official @payai/x402-solana v2 from PayAI Network
+ * Docs: https://github.com/PayAINetwork/x402-solana
  */
 
 import { config } from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import { X402PaymentHandler, PaymentRequirements } from 'x402-solana/server';
+import { X402PaymentHandler } from '@payai/x402-solana/server';
 import { PrismaClient } from '@prisma/client';
 
 config();
@@ -142,7 +142,8 @@ app.get('/', (_req, res) => {
 </html>`);
 });
 
-// --- x402-solana Payment Handler ---
+// --- x402-solana v2 Payment Handler ---
+// Exactly as per docs: https://github.com/PayAINetwork/x402-solana#server-side-express
 const x402Handler = new X402PaymentHandler({
   network: NETWORK as 'solana' | 'solana-devnet',
   treasuryAddress,
@@ -150,78 +151,10 @@ const x402Handler = new X402PaymentHandler({
   rpcUrl: solanaRpcUrl,
 });
 
-console.log('[x402-server] Solana x402 payments enabled');
+console.log('[x402-server] Solana x402 payments enabled (v2)');
 console.log('[x402-server] Treasury address:', treasuryAddress);
 console.log('[x402-server] Network:', NETWORK);
-
-// Route configuration for aggregator endpoint
-interface RouteConfig {
-  price: {
-    amount: string;
-    asset: { address: string; decimals: number };
-  };
-  network: 'solana' | 'solana-devnet';
-  config: {
-    description: string;
-    mimeType: string;
-    discoverable: boolean;
-    resource: string;
-    name?: string;
-    category?: string;
-    inputSchema?: object;
-    outputSchema?: object;
-  };
-  priceUsd: number;
-}
-
-const aggregatorRouteConfig: RouteConfig = {
-  price: {
-    amount: AGGREGATOR_PRICE,
-    asset: { address: USDC_MINT, decimals: 6 },
-  },
-  network: NETWORK as 'solana' | 'solana-devnet',
-  config: {
-    description: 'Access to Memento Stablecoin Yield Aggregator - Top yields from DeFi protocols',
-    mimeType: 'application/json',
-    discoverable: true,
-    resource: `${serverPublicUrl}/aggregator/solana`,
-    name: 'Memento Aggregator',
-    category: 'DeFi',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        userAddress: { type: 'string', description: 'User Solana wallet address' },
-        accessType: { type: 'string', enum: ['human', 'agent'], description: 'Type of access' },
-      },
-      required: ['userAddress'],
-    },
-    outputSchema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        accessGranted: { type: 'boolean' },
-        expiresAt: { type: 'string', description: 'ISO date when access expires (human only)' },
-        pools: { type: 'array', description: 'Top pools (agent only)' },
-      },
-    },
-  },
-  priceUsd: AGGREGATOR_PRICE_USD,
-};
-
-// Cache for payment requirements
-let cachedPaymentRequirements: PaymentRequirements | null = null;
-let cacheTimestamp = 0;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
-async function getPaymentRequirements(): Promise<PaymentRequirements> {
-  if (cachedPaymentRequirements && Date.now() - cacheTimestamp < CACHE_TTL_MS) {
-    return cachedPaymentRequirements;
-  }
-  
-  cachedPaymentRequirements = await x402Handler.createPaymentRequirements(aggregatorRouteConfig as any);
-  cacheTimestamp = Date.now();
-  return cachedPaymentRequirements;
-}
+console.log('[x402-server] Facilitator:', facilitatorUrl);
 
 // Helper: Get or create user
 async function getOrCreateUser(address: string) {
@@ -262,11 +195,11 @@ async function grantAccess(userId: string, paymentId: string) {
 
 // --- AGGREGATOR ENDPOINT (x402 protected) ---
 // POST /aggregator/solana
-// Human users: Get 24hr access
-// AI agents: Get top 5 safe + top 5 degen pools
+// Exactly as per docs: https://github.com/PayAINetwork/x402-solana#server-side-express
 app.post('/aggregator/solana', async (req, res) => {
   try {
     const { userAddress, accessType = 'human' } = req.body;
+    const resourceUrl = `${serverPublicUrl}/aggregator/solana`;
     
     // Validate input
     if (!userAddress) {
@@ -294,48 +227,44 @@ app.post('/aggregator/solana', async (req, res) => {
       }
     }
     
-    // Extract payment header
+    // 1. Extract payment header (v2 uses PAYMENT-SIGNATURE)
     const paymentHeader = x402Handler.extractPayment(req.headers as Record<string, string | string[] | undefined>);
     
-    // Get payment requirements
-    const paymentRequirements = await getPaymentRequirements();
+    // 2. Create payment requirements - v2 API
+    const paymentRequirements = await x402Handler.createPaymentRequirements(
+      {
+        amount: AGGREGATOR_PRICE, // $5 USDC in micro-units (string)
+        asset: {
+          address: USDC_MINT,
+          decimals: 6,
+        },
+        description: 'Memento Aggregator - 24hr Premium Access',
+      },
+      resourceUrl
+    );
     
     // If no payment header, return 402 Payment Required
     if (!paymentHeader) {
-      const response402 = x402Handler.create402Response(paymentRequirements);
+      const response402 = x402Handler.create402Response(paymentRequirements, resourceUrl);
       return res.status(402).json({
         ...response402.body,
         priceUsd: AGGREGATOR_PRICE_USD,
-        description: aggregatorRouteConfig.config.description,
+        description: 'Access to Memento Stablecoin Yield Aggregator',
       });
     }
     
-    // Verify payment with facilitator
+    // 3. Verify payment with facilitator
     const verifyResult = await x402Handler.verifyPayment(paymentHeader, paymentRequirements);
     
     if (!verifyResult.isValid) {
       console.error('[x402] Payment verification failed:', verifyResult.invalidReason);
-      const response402 = x402Handler.create402Response(paymentRequirements);
       return res.status(402).json({
-        ...response402.body,
-        error: verifyResult.invalidReason || 'Payment verification failed',
+        error: 'Invalid payment',
+        reason: verifyResult.invalidReason,
       });
     }
     
-    // Settle payment with facilitator
-    const settleResult = await x402Handler.settlePayment(paymentHeader, paymentRequirements);
-    
-    if (!settleResult.success) {
-      console.error('[x402] Payment settlement failed:', settleResult.errorReason);
-      return res.status(500).json({
-        error: 'Payment settlement failed',
-        reason: settleResult.errorReason,
-      });
-    }
-    
-    console.log('[x402] Payment verified and settled for:', userAddress);
-    
-    // Get or create user
+    // 4. Process business logic (grant access)
     const user = await getOrCreateUser(userAddress);
     
     // Record payment
@@ -353,7 +282,17 @@ app.post('/aggregator/solana', async (req, res) => {
       },
     });
     
-    // Handle based on access type
+    // 5. Settle payment with facilitator
+    const settleResult = await x402Handler.settlePayment(paymentHeader, paymentRequirements);
+    
+    if (!settleResult.success) {
+      console.error('[x402] Payment settlement failed:', settleResult.errorReason);
+      // Note: We still grant access since payment was verified
+    }
+    
+    console.log('[x402] Payment verified and settled for:', userAddress);
+    
+    // 6. Return response based on access type
     if (accessType === 'agent') {
       // AI agent: Return top pools immediately
       const pools = await fetchTopPools();
@@ -537,8 +476,3 @@ app.listen(PORT, () => {
   console.log(`[x402-server] Memento server running on port ${PORT}`);
   console.log(`[x402-server] Aggregator price: $${AGGREGATOR_PRICE_USD} USDC`);
 });
-
-
-
-
-

@@ -1,16 +1,17 @@
 'use client';
 
+/**
+ * useX402 Hook - x402 payment integration
+ * Following official @payai/x402-solana docs exactly
+ * https://github.com/PayAINetwork/x402-solana
+ */
+
 import { useState, useCallback, useMemo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { useAppKitAccount } from '@reown/appkit/react';
-import { createX402Client, X402Client } from 'x402-solana/client';
-import type { VersionedTransaction } from '@solana/web3.js';
+import { createX402Client } from '@payai/x402-solana/client';
 
 // x402 Server URL
 const X402_SERVER_URL = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'https://x402.memento.money';
-
-// Solana RPC URL
-const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
 
 // Access check response
 interface AccessCheckResponse {
@@ -47,75 +48,38 @@ interface PaymentResponse {
 }
 
 export function useX402() {
-  // Native Solana wallet adapter (primary - best x402 compatibility)
-  const { publicKey, signTransaction, connected } = useWallet();
-  
-  // Reown Solana account (fallback)
-  const solanaAccount = useAppKitAccount({ namespace: 'solana' });
-  
-  // Prefer native adapter
-  const isConnected = connected || solanaAccount.isConnected;
-  const address = publicKey?.toBase58() || solanaAccount.address;
+  // Native Solana wallet adapter - exactly as per docs
+  const wallet = useWallet();
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Create x402 client - only works with native adapter (has signTransaction)
-  const x402Client = useMemo((): X402Client | null => {
-    // x402-solana requires native wallet adapter with signTransaction
-    if (!connected || !publicKey || !signTransaction) {
-      // #region agent log
-      console.log('[DBG:x402] No native wallet adapter available', { 
-        connected, 
-        hasPublicKey: !!publicKey, 
-        hasSignTx: !!signTransaction,
-        reownConnected: solanaAccount.isConnected 
-      });
-      // #endregion
+  // Derived state
+  const isConnected = wallet.connected && !!wallet.publicKey;
+  const address = wallet.publicKey?.toString();
+
+  // Create x402 client - exactly as per official docs
+  const x402Client = useMemo(() => {
+    if (!wallet.connected || !wallet.publicKey) {
       return null;
     }
-    
-    // #region agent log
-    console.log('[DBG:x402] Creating x402 client with native adapter', {
-      publicKey: publicKey.toBase58(),
-    });
-    // #endregion
-    
-    try {
-      const walletAdapter = {
-        address: publicKey.toBase58(),
-        publicKey: publicKey,
-        signTransaction: async (tx: VersionedTransaction): Promise<VersionedTransaction> => {
-          // #region agent log
-          const ixCount = tx.message.compiledInstructions.length;
-          console.log('[DBG:x402] Transaction BEFORE signing', { instructionCount: ixCount });
-          // #endregion
-          
-          const signedTx = await signTransaction(tx);
-          
-          // #region agent log
-          const signedIxCount = signedTx.message.compiledInstructions.length;
-          console.log('[DBG:x402] Transaction AFTER signing', { 
-            instructionCountBefore: ixCount,
-            instructionCountAfter: signedIxCount 
-          });
-          // #endregion
-          
-          return signedTx as VersionedTransaction;
+
+    // Create x402 client exactly as shown in docs
+    // https://github.com/PayAINetwork/x402-solana#option-1-using-solana-wallet-adapter-recommended
+    return createX402Client({
+      wallet: {
+        address: wallet.publicKey.toString(),
+        signTransaction: async (tx) => {
+          if (!wallet.signTransaction) {
+            throw new Error('Wallet does not support signing');
+          }
+          return await wallet.signTransaction(tx);
         },
-      };
-      
-      return createX402Client({
-        wallet: walletAdapter,
-        network: 'solana',
-        rpcUrl: SOLANA_RPC_URL,
-        maxPaymentAmount: BigInt(10_000_000), // max 10 USDC
-      });
-    } catch (err) {
-      console.error('[useX402] Failed to create x402 client:', err);
-      return null;
-    }
-  }, [connected, publicKey, signTransaction, solanaAccount.isConnected]);
+      },
+      network: 'solana', // mainnet - simple format auto-converts to CAIP-2
+      amount: BigInt(10_000_000), // max 10 USDC safety limit
+    });
+  }, [wallet.connected, wallet.publicKey, wallet.signTransaction]);
 
   // Check if user has active access
   const checkAccess = useCallback(async (): Promise<AccessCheckResponse> => {
@@ -142,8 +106,8 @@ export function useX402() {
   // Request access (triggers x402 payment flow)
   const requestAccess = useCallback(async (accessType: 'human' | 'agent' = 'human'): Promise<PaymentResponse> => {
     if (!x402Client || !address) {
-      const errorMsg = !connected 
-        ? 'Please connect your Solana wallet using the Phantom or Solflare option.'
+      const errorMsg = !wallet.connected 
+        ? 'Please connect your Solana wallet first.'
         : 'Wallet not ready for payments. Please reconnect.';
       setError(errorMsg);
       return { success: false, accessGranted: false, error: errorMsg };
@@ -152,11 +116,9 @@ export function useX402() {
     setIsLoading(true);
     setError(null);
 
-    // #region agent log
-    console.log('[DBG:x402] Starting payment request', { address, accessType });
-    // #endregion
-
     try {
+      // Make paid request - automatically handles 402 payments
+      // Exactly as per docs: https://github.com/PayAINetwork/x402-solana
       const response = await x402Client.fetch(`${X402_SERVER_URL}/aggregator/solana`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -165,10 +127,6 @@ export function useX402() {
           accessType,
         }),
       });
-
-      // #region agent log
-      console.log('[DBG:x402] Payment response', { status: response.status, ok: response.ok });
-      // #endregion
 
       const result: PaymentResponse = await response.json();
 
@@ -179,18 +137,13 @@ export function useX402() {
       return result;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Payment failed';
-      
-      // #region agent log
-      console.log('[DBG:x402] Payment error', { error: errorMessage });
-      // #endregion
-      
       console.error('[useX402] Request access error:', err);
       setError(errorMessage);
       return { success: false, accessGranted: false, error: errorMessage };
     } finally {
       setIsLoading(false);
     }
-  }, [x402Client, address, connected]);
+  }, [x402Client, address, wallet.connected]);
 
   return {
     checkAccess,
