@@ -5,12 +5,11 @@ import { createAppKit } from '@reown/appkit/react';
 import { SolanaAdapter } from '@reown/appkit-adapter-solana/react';
 import { solana, type AppKitNetwork } from '@reown/appkit/networks';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { SolanaWalletProvider } from './SolanaWalletProvider';
 
 // Create query client for React Query
 const queryClient = new QueryClient();
 
-// Project ID from Reown Cloud - provided by user
+// Project ID from Reown Cloud
 const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || 'a7872db4a69c8c1b91b3ef751f119bd0';
 
 // Create Solana adapter for Reown AppKit
@@ -47,10 +46,7 @@ interface AppProvidersProps {
 export function AppProviders({ children }: AppProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
-      <SolanaWalletProvider>
-        {children}
-      </SolanaWalletProvider>
+      {children}
     </QueryClientProvider>
   );
 }
-
