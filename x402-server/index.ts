@@ -12,6 +12,7 @@
 import { config } from 'dotenv';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import { X402PaymentHandler, PaymentRequirements } from 'x402-solana/server';
 import { PrismaClient } from '@prisma/client';
 
@@ -86,6 +87,18 @@ app.use((_req, res, next) => {
 
 app.use(express.json());
 
+// Serve static files from public folder
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
+// Favicon route
+app.get('/favicon.ico', (_req, res) => {
+  res.redirect('/public/favicon.png');
+});
+
+app.get('/favicon.png', (_req, res) => {
+  res.redirect('/public/favicon.png');
+});
+
 // Landing page
 app.get('/', (_req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -95,28 +108,46 @@ app.get('/', (_req, res) => {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Memento x402 Server</title>
-    <meta name="description" content="Stablecoin Yield Aggregator - Pay-per-access API" />
+    <meta name="description" content="A new global privacy focused standard for earning yield on stablecoins, on-chain and beyond." />
+    <meta property="og:title" content="Memento x402 Server" />
+    <meta property="og:description" content="A new global privacy focused standard for earning yield on stablecoins, on-chain and beyond." />
+    <meta property="og:image" content="${serverPublicUrl}/public/favicon.png" />
+    <meta property="og:url" content="${serverPublicUrl}" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Memento x402 Server" />
+    <meta name="twitter:description" content="A new global privacy focused standard for earning yield on stablecoins, on-chain and beyond." />
+    <link rel="icon" type="image/png" href="/public/favicon.png" />
+    <link rel="apple-touch-icon" href="/public/favicon.png" />
     <style>
-      body { font-family: system-ui, sans-serif; line-height: 1.6; padding: 2.5rem; margin: 0; min-height: 100vh; background: linear-gradient(135deg, #fdf2f8 0%, #f5f3ff 50%, #eff6ff 100%); color: #1f2937; display: flex; align-items: center; justify-content: center; }
-      .card { width: 100%; max-width: 720px; border: 1px solid rgba(0,0,0,0.1); border-radius: 20px; padding: 32px; background: rgba(255,255,255,0.8); backdrop-filter: blur(12px); box-shadow: 0 25px 80px rgba(0,0,0,0.1); }
-      h1 { margin: 0 0 12px 0; font-size: 32px; }
-      p { margin: 0 0 24px 0; color: #6b7280; }
-      .grid { display: flex; flex-wrap: wrap; gap: 16px; }
-      .pill { padding: 10px 16px; border-radius: 999px; border: 1px solid #d1d5db; color: #374151; text-decoration: none; transition: all 0.2s ease; font-size: 14px; }
-      .pill:hover { border-color: #9ca3af; background: #f9fafb; }
-      .price { background: #fce7f3; color: #be185d; border-color: #fbcfe8; }
+      body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; padding: 2.5rem; margin: 0; min-height: 100vh; background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 50%, #16213e 100%); color: #e5e7eb; display: flex; align-items: center; justify-content: center; }
+      .card { width: 100%; max-width: 720px; border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 40px; background: rgba(30,30,40,0.9); backdrop-filter: blur(20px); box-shadow: 0 25px 80px rgba(0,0,0,0.5); }
+      .logo { width: 64px; height: 64px; margin-bottom: 16px; border-radius: 12px; }
+      h1 { margin: 0 0 8px 0; font-size: 28px; font-weight: 600; color: #ffffff; }
+      .bio { margin: 0 0 24px 0; color: #9ca3af; font-size: 15px; line-height: 1.7; }
+      .grid { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+      .pill { padding: 10px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.15); color: #d1d5db; text-decoration: none; transition: all 0.2s ease; font-size: 14px; background: rgba(255,255,255,0.05); }
+      .pill:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: #fff; }
+      .price { background: rgba(236, 72, 153, 0.15); color: #f472b6; border-color: rgba(236, 72, 153, 0.3); }
+      .footer { font-size: 12px; color: #6b7280; }
+      .footer a { color: #9ca3af; text-decoration: none; }
+      .footer a:hover { color: #fff; }
     </style>
   </head>
   <body>
     <div class="card">
-      <h1>🏦 Memento x402 Server</h1>
-      <p>Stablecoin Yield Aggregator - Pay $5 USDC for access</p>
+      <img src="/public/favicon.png" alt="Memento" class="logo" />
+      <h1>Memento x402 Server</h1>
+      <p class="bio">A new global privacy focused standard for earning yield on stablecoins, on-chain and beyond.</p>
       <div class="grid">
         <a class="pill" href="/health">Health</a>
         <a class="pill" href="/aggregator/solana">Aggregator API</a>
-        <span class="pill price">$5 USDC per access</span>
+        <span class="pill price">$5 USDC / 24hr access</span>
       </div>
-      <p style="margin-top:24px;font-size:13px;color:#9ca3af;">Server: ${serverPublicUrl}</p>
+      <p class="footer">
+        <a href="https://memento.money" target="_blank">memento.money</a> · 
+        <a href="https://app.memento.money" target="_blank">app.memento.money</a> · 
+        x402.memento.money
+      </p>
     </div>
   </body>
 </html>`);

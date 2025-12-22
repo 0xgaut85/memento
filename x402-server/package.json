@@ -1,7 +1,7 @@
 {
   "name": "memento-x402-server",
   "version": "1.0.0",
-  "description": "x402 Payment Server for Memento Stablecoin Aggregator",
+  "description": "A new global privacy focused standard for earning yield on stablecoins, on-chain and beyond.",
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch index.ts",
