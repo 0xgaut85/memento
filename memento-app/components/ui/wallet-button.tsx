@@ -1,19 +1,16 @@
 'use client';
 
 /**
- * WalletButton - Uses native Solana Wallet Adapter
- * Exactly as per x402-solana README: https://github.com/PayAINetwork/x402-solana
- * 
- * Uses WalletMultiButton for connection UI
+ * WalletButton - Custom wallet connection button with error handling
+ * Uses native Solana Wallet Adapter with retry logic
  */
 
-import dynamic from 'next/dynamic';
+import { useState, useCallback, useEffect } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 
-// Dynamically import the wallet button to prevent SSR issues
-const WalletMultiButtonDynamic = dynamic(
-  async () => (await import('@solana/wallet-adapter-react-ui')).WalletMultiButton,
-  { ssr: false, loading: () => <WalletButtonPlaceholder /> }
-);
+// Import styles
+import '@solana/wallet-adapter-react-ui/styles.css';
 
 function WalletButtonPlaceholder() {
   return (
@@ -21,73 +18,110 @@ function WalletButtonPlaceholder() {
       className="px-4 py-2.5 bg-pink-100 text-pink-800 rounded-xl font-medium text-sm"
       disabled
     >
-      Connect Wallet
+      Loading...
+    </button>
+  );
+}
+
+function WalletButtonInner() {
+  const { publicKey, wallet, disconnect, connecting, connected, select, wallets } = useWallet();
+  const { setVisible } = useWalletModal();
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  // Format address for display
+  const formatAddress = (address: string) => {
+    return `${address.slice(0, 4)}...${address.slice(-4)}`;
+  };
+
+  // Handle connect with retry logic
+  const handleConnect = useCallback(async () => {
+    if (connecting || isRetrying) return;
+    
+    // If no wallet selected, open modal
+    if (!wallet) {
+      setVisible(true);
+      return;
+    }
+
+    // If wallet selected but not connected, try to connect with retry
+    if (wallet && !connected) {
+      setIsRetrying(true);
+      try {
+        // Small delay to ensure wallet is ready
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await wallet.adapter.connect();
+      } catch (error: unknown) {
+        console.warn('[WalletButton] Connection error, will retry:', error);
+        // On error, deselect and show modal again
+        select(null);
+        setTimeout(() => setVisible(true), 300);
+      } finally {
+        setIsRetrying(false);
+      }
+    }
+  }, [wallet, connected, connecting, isRetrying, setVisible, select]);
+
+  // Handle disconnect
+  const handleDisconnect = useCallback(async () => {
+    try {
+      await disconnect();
+    } catch (error) {
+      console.warn('[WalletButton] Disconnect error:', error);
+    }
+  }, [disconnect]);
+
+  // If connected, show address with disconnect option
+  if (connected && publicKey) {
+    return (
+      <div className="relative group">
+        <button
+          className="px-4 py-2.5 bg-emerald-100 text-emerald-800 rounded-xl font-medium text-sm flex items-center gap-2 transition-all hover:bg-emerald-200"
+          onClick={handleDisconnect}
+        >
+          {wallet?.adapter.icon && (
+            <img 
+              src={wallet.adapter.icon} 
+              alt={wallet.adapter.name} 
+              className="w-4 h-4"
+            />
+          )}
+          {formatAddress(publicKey.toString())}
+        </button>
+      </div>
+    );
+  }
+
+  // Not connected - show connect button
+  return (
+    <button
+      className="px-4 py-2.5 bg-pink-100 text-pink-800 rounded-xl font-medium text-sm transition-all hover:bg-pink-200 disabled:opacity-50"
+      onClick={handleConnect}
+      disabled={connecting || isRetrying}
+    >
+      {connecting || isRetrying ? 'Connecting...' : 'Select Wallet'}
     </button>
   );
 }
 
 export function WalletButton() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <WalletButtonPlaceholder />;
+  }
+
   return (
-    <div className="wallet-adapter-button-wrapper">
-      <WalletMultiButtonDynamic 
-        style={{
-          backgroundColor: '#fce7f3',
-          color: '#9d174d',
-          borderRadius: '0.75rem',
-          fontWeight: 500,
-          fontSize: '0.875rem',
-          height: '2.75rem',
-          padding: '0 1rem',
-        }}
-      />
+    <>
+      <WalletButtonInner />
       <style jsx global>{`
-        .wallet-adapter-button-wrapper .wallet-adapter-button {
-          border-radius: 0.75rem !important;
-          font-weight: 500 !important;
-          font-size: 0.875rem !important;
-          height: 2.75rem !important;
-          padding: 0 1rem !important;
-          transition: all 0.2s ease !important;
-        }
-        .wallet-adapter-button-wrapper .wallet-adapter-button:not(.wallet-adapter-button-trigger) {
-          background-color: #fce7f3 !important;
-          color: #9d174d !important;
-        }
-        .wallet-adapter-button-wrapper .wallet-adapter-button:not(.wallet-adapter-button-trigger):hover {
-          background-color: #fbcfe8 !important;
-        }
-        .wallet-adapter-button-wrapper .wallet-adapter-button.wallet-adapter-button-trigger {
-          background-color: #d1fae5 !important;
-          color: #065f46 !important;
-        }
-        .wallet-adapter-button-wrapper .wallet-adapter-button.wallet-adapter-button-trigger:hover {
-          background-color: #a7f3d0 !important;
-        }
-        .wallet-adapter-button-wrapper .wallet-adapter-button-start-icon {
-          margin-right: 0.5rem !important;
-        }
-        .wallet-adapter-dropdown {
-          z-index: 1000 !important;
-        }
-        .wallet-adapter-dropdown-list {
-          background-color: white !important;
-          border: 1px solid #e5e7eb !important;
-          border-radius: 0.75rem !important;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
-          overflow: hidden !important;
-        }
-        .wallet-adapter-dropdown-list-item {
-          background-color: white !important;
-          color: #374151 !important;
-          padding: 0.75rem 1rem !important;
-          font-size: 0.875rem !important;
-        }
-        .wallet-adapter-dropdown-list-item:hover {
-          background-color: #f3f4f6 !important;
-        }
         .wallet-adapter-modal-wrapper {
           background-color: rgba(0, 0, 0, 0.8) !important;
           backdrop-filter: blur(4px) !important;
+          z-index: 9999 !important;
         }
         .wallet-adapter-modal-container {
           background-color: white !important;
@@ -111,7 +145,13 @@ export function WalletButton() {
           background-color: #f3f4f6 !important;
           border-color: #d1d5db !important;
         }
+        .wallet-adapter-modal-button-close {
+          background-color: transparent !important;
+        }
+        .wallet-adapter-modal-button-close:hover {
+          background-color: #f3f4f6 !important;
+        }
       `}</style>
-    </div>
+    </>
   );
 }

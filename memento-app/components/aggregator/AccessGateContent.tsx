@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useX402 } from '@/lib/hooks/use-x402';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { useWalletModal, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { ArrowRight, Loader2, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 
@@ -20,6 +20,8 @@ interface AccessGateContentProps {
 export function AccessGateContent({ children }: AccessGateContentProps) {
   const { checkAccess, requestAccess, isLoading, error, isConnected, publicKey } = useX402();
   const wallet = useWallet();
+  const { setVisible } = useWalletModal();
+  const [isConnecting, setIsConnecting] = useState(false);
   
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);

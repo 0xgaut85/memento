@@ -14,6 +14,8 @@ import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react
 import { WalletError, WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { clusterApiUrl } from '@solana/web3.js';
+import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
+import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
 
 // Import Solana wallet adapter styles
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -39,18 +41,22 @@ export function SolanaWalletProvider({ children }: SolanaWalletProviderProps) {
     return clusterApiUrl(network);
   }, [network]);
 
-  // Empty array - let Standard Wallet detection handle wallet discovery
-  const wallets = useMemo(() => [], []);
+  // Explicit adapters to avoid wallet-standard edge cases
+  const wallets = useMemo(
+    () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
+    []
+  );
 
   // Error handler - suppress expected errors, log unexpected ones
   const onError = useCallback((error: WalletError) => {
     // These are expected errors that users might trigger
     const expectedErrors = [
       'User rejected',
-      'User cancelled',
+      'User cancelled', 
       'User denied',
       'The user rejected',
       'Popup closed',
+      'already pending', // Connection already in progress
     ];
     
     const isExpectedError = expectedErrors.some(msg => 
@@ -66,7 +72,10 @@ export function SolanaWalletProvider({ children }: SolanaWalletProviderProps) {
   return (
     <ConnectionProvider 
       endpoint={endpoint}
-      config={{ commitment: 'confirmed' }}
+      config={{ 
+        commitment: 'confirmed',
+        wsEndpoint: endpoint.replace('https', 'wss'),
+      }}
     >
       <WalletProvider 
         wallets={wallets} 
