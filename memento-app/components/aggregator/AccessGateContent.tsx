@@ -8,7 +8,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useX402 } from '@/lib/hooks/use-x402';
-import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { ArrowRight, Loader2, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 
@@ -18,7 +19,7 @@ interface AccessGateContentProps {
 
 export function AccessGateContent({ children }: AccessGateContentProps) {
   const { checkAccess, requestAccess, isLoading, error, isConnected, publicKey } = useX402();
-  const { setVisible } = useWalletModal();
+  const wallet = useWallet();
   
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
@@ -65,11 +66,6 @@ export function AccessGateContent({ children }: AccessGateContentProps) {
       setPaymentStatus('error');
       setPaymentMessage(result.error || 'Payment failed. Please try again.');
     }
-  };
-
-  // Open native Solana wallet modal
-  const handleConnectWallet = () => {
-    setVisible(true);
   };
 
   // Loading state
@@ -209,25 +205,30 @@ export function AccessGateContent({ children }: AccessGateContentProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.6 }}
+              className="flex flex-col items-center"
             >
               {!isConnected ? (
-                <motion.button
-                  onClick={handleConnectWallet}
-                  className="group relative overflow-hidden w-full sm:w-auto text-lg px-12 py-5 bg-black text-white font-semibold transition-all duration-300"
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-3">
-                    Connect Wallet
-                    <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
-                  </span>
-                  <motion.div
-                    className="absolute inset-0 bg-primary"
-                    initial={{ x: "-100%" }}
-                    whileHover={{ x: 0 }}
-                    transition={{ duration: 0.3 }}
-                  />
-                </motion.button>
+                <div className="connect-wallet-cta">
+                  <WalletMultiButton />
+                  <style jsx global>{`
+                    .connect-wallet-cta .wallet-adapter-button {
+                      background-color: #000 !important;
+                      color: #fff !important;
+                      font-size: 1.125rem !important;
+                      font-weight: 600 !important;
+                      padding: 1.25rem 3rem !important;
+                      height: auto !important;
+                      border-radius: 0 !important;
+                      transition: all 0.3s ease !important;
+                    }
+                    .connect-wallet-cta .wallet-adapter-button:hover {
+                      background-color: #ec4899 !important;
+                    }
+                    .connect-wallet-cta .wallet-adapter-button-start-icon {
+                      display: none !important;
+                    }
+                  `}</style>
+                </div>
               ) : (
                 <motion.button
                   onClick={() => setShowPaymentModal(true)}
@@ -392,4 +393,3 @@ export function AccessGateContent({ children }: AccessGateContentProps) {
     </>
   );
 }
-
