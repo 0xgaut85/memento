@@ -63,19 +63,8 @@ app.get('/health', (_req, res) => {
 app.use((_req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD');
-  res.setHeader('Access-Control-Allow-Headers', 
-    'Content-Type, Authorization, Accept, Origin, ' +
-    'X-Payment, x-payment, X-PAYMENT, ' +
-    'X-Payment-Response, x-payment-response, ' +
-    'X-Payment-Required, x-payment-required, ' +
-    'X-Payment-Quote, x-payment-quote'
-  );
-  res.setHeader('Access-Control-Expose-Headers', 
-    'X-Payment, x-payment, X-PAYMENT, ' +
-    'X-Payment-Response, x-payment-response, ' +
-    'X-Payment-Required, x-payment-required, ' +
-    'X-Payment-Quote, x-payment-quote'
-  );
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Access-Control-Expose-Headers', '*');
   res.setHeader('Access-Control-Max-Age', '86400');
   
   if (_req.method === 'OPTIONS') {
