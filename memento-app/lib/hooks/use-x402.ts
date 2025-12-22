@@ -9,7 +9,7 @@ import { createX402Client } from 'x402-solana/client';
 const X402_SERVER_URL = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'https://x402.memento.money';
 
 // Solana RPC URL (Helius for reliability)
-const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=0d1fd9dd-c8db-4e20-b550-6dbf601f65cc';
+const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
 
 // Access check response
 interface AccessCheckResponse {
