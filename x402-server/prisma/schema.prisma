@@ -1,0 +1,78 @@
+// Prisma Schema for Memento x402 Server
+// Database: PostgreSQL (Railway)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model - tracks wallet addresses
+model User {
+  id        String   @id @default(cuid())
+  address   String   @unique // Solana wallet address (base58)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  aggregatorAccess AggregatorAccess[]
+  payments         Payment[]
+}
+
+// AggregatorAccess model - tracks 24hr access grants for human users
+model AggregatorAccess {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  grantedAt DateTime @default(now())
+  expiresAt DateTime // 24 hours after grantedAt
+  active    Boolean  @default(true)
+
+  // Payment that granted this access
+  paymentId String?  @unique
+  payment   Payment? @relation(fields: [paymentId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// Payment model - tracks x402 payments
+model Payment {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  
+  // Payment details
+  amount        String   // Amount in USDC micro-units (string for precision)
+  amountUsd     Float    // Amount in USD
+  currency      String   @default("USDC")
+  chain         String   @default("solana")
+  
+  // Transaction info
+  txSignature   String?  // Solana transaction signature
+  payerAddress  String   // Who paid
+  
+  // Service info
+  service       String   // "aggregator"
+  accessType    String   // "human" or "agent"
+  
+  // Status
+  status        String   @default("completed") // pending, completed, failed
+  
+  createdAt     DateTime @default(now())
+
+  // Relation to access grant (for human users)
+  accessGrant   AggregatorAccess?
+
+  @@index([userId])
+  @@index([txSignature])
+  @@index([createdAt])
+}
+
+
+
+
+

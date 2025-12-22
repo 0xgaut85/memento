@@ -1,0 +1,158 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
+  
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+  :root {
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.1 0 0);
+  
+  /* Deep Purple */
+  --primary: oklch(0.30 0.14 285);
+  --primary-foreground: oklch(0.99 0 0);
+  
+  /* Soft Pink/Peach */
+  --secondary: oklch(0.85 0.12 15);
+  --secondary-foreground: oklch(0.1 0 0);
+  
+  /* Vibrant Mid-Tone Accent */
+  --accent: oklch(0.55 0.20 325);
+  --accent-foreground: oklch(0.99 0 0);
+  
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.4 0 0);
+  
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.1 0 0);
+  
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.95 0 0);
+  --ring: oklch(0.3 0.14 285);
+  
+  --radius: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans), system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  /* Glass morphism utilities */
+  .glass {
+    @apply bg-white/60 backdrop-blur-xl border border-white/20;
+  }
+  
+  .glass-strong {
+    @apply bg-white/80 backdrop-blur-2xl border border-white/30;
+  }
+  
+  .glass-subtle {
+    @apply bg-white/40 backdrop-blur-lg border border-white/10;
+  }
+  
+  /* Premium shadows */
+  .shadow-glass {
+    box-shadow: 
+      0 4px 24px -4px rgba(0, 0, 0, 0.08),
+      0 2px 8px -2px rgba(0, 0, 0, 0.04),
+      inset 0 1px 1px rgba(255, 255, 255, 0.6);
+  }
+  
+  .shadow-glass-lg {
+    box-shadow: 
+      0 8px 40px -8px rgba(0, 0, 0, 0.12),
+      0 4px 16px -4px rgba(0, 0, 0, 0.06),
+      inset 0 1px 2px rgba(255, 255, 255, 0.5);
+  }
+  
+  .shadow-glow-purple {
+    box-shadow: 
+      0 0 40px -10px rgba(168, 85, 247, 0.4),
+      0 0 80px -20px rgba(168, 85, 247, 0.2);
+  }
+  
+  .shadow-glow-pink {
+    box-shadow: 
+      0 0 40px -10px rgba(236, 72, 153, 0.4),
+      0 0 80px -20px rgba(236, 72, 153, 0.2);
+  }
+  
+  /* Gradient text */
+  .text-gradient-purple {
+    background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #a855f7 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Text balance */
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Animations */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 20px -5px rgba(168, 85, 247, 0.3);
+  }
+  50% { 
+    box-shadow: 0 0 40px -5px rgba(168, 85, 247, 0.5);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Hide scrollbar */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

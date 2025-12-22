@@ -1,0 +1,38 @@
+{
+  "name": "memento-x402-server",
+  "version": "1.0.0",
+  "description": "x402 Payment Server for Memento Stablecoin Aggregator",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx watch index.ts",
+    "start": "tsx index.ts",
+    "build": "npx prisma generate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "@prisma/client": "^6.0.0",
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.98.0",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "prisma": "^6.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "x402-solana": "^0.1.4"
+  }
+}
+
+
+
+
+

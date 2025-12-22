@@ -1,0 +1,524 @@
+/**
+ * Memento x402 Express Server
+ * Payment gateway for Aggregator access
+ * 
+ * - Human users: Pay $5 USDC for 24hr access to aggregator
+ * - AI agents: Pay $5 USDC per API call, get top 5 safe + top 5 degen pools
+ * 
+ * Uses official x402-solana from PayAI Network
+ * Docs: https://www.npmjs.com/package/x402-solana
+ */
+
+import { config } from 'dotenv';
+import express from 'express';
+import cors from 'cors';
+import { X402PaymentHandler, PaymentRequirements } from 'x402-solana/server';
+import { PrismaClient } from '@prisma/client';
+
+config();
+
+const prisma = new PrismaClient();
+
+// Configuration
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 4000;
+const facilitatorUrl = process.env.FACILITATOR_URL || 'https://facilitator.payai.network';
+const treasuryAddress = process.env.TREASURY_WALLET_ADDRESS!;
+const solanaRpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+const serverPublicUrl = process.env.X402_PUBLIC_URL || 'https://x402.memento.money';
+const mementoAppUrl = process.env.MEMENTO_APP_URL || 'https://app.memento.money';
+
+// USDC Mint addresses
+const USDC_MINT_MAINNET = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+const USDC_MINT_DEVNET = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
+
+// Use mainnet by default, devnet for testing
+const USDC_MINT = process.env.NODE_ENV === 'development' ? USDC_MINT_DEVNET : USDC_MINT_MAINNET;
+const NETWORK = process.env.NODE_ENV === 'development' ? 'solana-devnet' : 'solana';
+
+// Price: $5 USDC = 5,000,000 micro-units (6 decimals)
+const AGGREGATOR_PRICE = '5000000';
+const AGGREGATOR_PRICE_USD = 5.00;
+
+if (!treasuryAddress) {
+  console.error('Missing required environment variable: TREASURY_WALLET_ADDRESS');
+  process.exit(1);
+}
+
+const app = express();
+
+// Trust proxy for Railway
+app.set('trust proxy', true);
+
+// Health check - must be before any middleware
+app.get('/health', (_req, res) => {
+  res.json({ 
+    status: 'ok', 
+    service: 'Memento x402 Server', 
+    timestamp: new Date().toISOString() 
+  });
+});
+
+// CORS configuration for x402 headers
+app.use((_req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD');
+  res.setHeader('Access-Control-Allow-Headers', 
+    'Content-Type, Authorization, Accept, Origin, ' +
+    'X-Payment, x-payment, X-PAYMENT, ' +
+    'X-Payment-Response, x-payment-response, ' +
+    'X-Payment-Required, x-payment-required, ' +
+    'X-Payment-Quote, x-payment-quote'
+  );
+  res.setHeader('Access-Control-Expose-Headers', 
+    'X-Payment, x-payment, X-PAYMENT, ' +
+    'X-Payment-Response, x-payment-response, ' +
+    'X-Payment-Required, x-payment-required, ' +
+    'X-Payment-Quote, x-payment-quote'
+  );
+  res.setHeader('Access-Control-Max-Age', '86400');
+  
+  if (_req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+  
+  next();
+});
+
+app.use(express.json());
+
+// Landing page
+app.get('/', (_req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.status(200).send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Memento x402 Server</title>
+    <meta name="description" content="Stablecoin Yield Aggregator - Pay-per-access API" />
+    <style>
+      body { font-family: system-ui, sans-serif; line-height: 1.6; padding: 2.5rem; margin: 0; min-height: 100vh; background: linear-gradient(135deg, #fdf2f8 0%, #f5f3ff 50%, #eff6ff 100%); color: #1f2937; display: flex; align-items: center; justify-content: center; }
+      .card { width: 100%; max-width: 720px; border: 1px solid rgba(0,0,0,0.1); border-radius: 20px; padding: 32px; background: rgba(255,255,255,0.8); backdrop-filter: blur(12px); box-shadow: 0 25px 80px rgba(0,0,0,0.1); }
+      h1 { margin: 0 0 12px 0; font-size: 32px; }
+      p { margin: 0 0 24px 0; color: #6b7280; }
+      .grid { display: flex; flex-wrap: wrap; gap: 16px; }
+      .pill { padding: 10px 16px; border-radius: 999px; border: 1px solid #d1d5db; color: #374151; text-decoration: none; transition: all 0.2s ease; font-size: 14px; }
+      .pill:hover { border-color: #9ca3af; background: #f9fafb; }
+      .price { background: #fce7f3; color: #be185d; border-color: #fbcfe8; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>🏦 Memento x402 Server</h1>
+      <p>Stablecoin Yield Aggregator - Pay $5 USDC for access</p>
+      <div class="grid">
+        <a class="pill" href="/health">Health</a>
+        <a class="pill" href="/aggregator/solana">Aggregator API</a>
+        <span class="pill price">$5 USDC per access</span>
+      </div>
+      <p style="margin-top:24px;font-size:13px;color:#9ca3af;">Server: ${serverPublicUrl}</p>
+    </div>
+  </body>
+</html>`);
+});
+
+// --- x402-solana Payment Handler ---
+const x402Handler = new X402PaymentHandler({
+  network: NETWORK as 'solana' | 'solana-devnet',
+  treasuryAddress,
+  facilitatorUrl,
+  rpcUrl: solanaRpcUrl,
+});
+
+console.log('[x402-server] Solana x402 payments enabled');
+console.log('[x402-server] Treasury address:', treasuryAddress);
+console.log('[x402-server] Network:', NETWORK);
+
+// Route configuration for aggregator endpoint
+interface RouteConfig {
+  price: {
+    amount: string;
+    asset: { address: string; decimals: number };
+  };
+  network: 'solana' | 'solana-devnet';
+  config: {
+    description: string;
+    mimeType: string;
+    discoverable: boolean;
+    resource: string;
+    name?: string;
+    category?: string;
+    inputSchema?: object;
+    outputSchema?: object;
+  };
+  priceUsd: number;
+}
+
+const aggregatorRouteConfig: RouteConfig = {
+  price: {
+    amount: AGGREGATOR_PRICE,
+    asset: { address: USDC_MINT, decimals: 6 },
+  },
+  network: NETWORK as 'solana' | 'solana-devnet',
+  config: {
+    description: 'Access to Memento Stablecoin Yield Aggregator - Top yields from DeFi protocols',
+    mimeType: 'application/json',
+    discoverable: true,
+    resource: `${serverPublicUrl}/aggregator/solana`,
+    name: 'Memento Aggregator',
+    category: 'DeFi',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        userAddress: { type: 'string', description: 'User Solana wallet address' },
+        accessType: { type: 'string', enum: ['human', 'agent'], description: 'Type of access' },
+      },
+      required: ['userAddress'],
+    },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        accessGranted: { type: 'boolean' },
+        expiresAt: { type: 'string', description: 'ISO date when access expires (human only)' },
+        pools: { type: 'array', description: 'Top pools (agent only)' },
+      },
+    },
+  },
+  priceUsd: AGGREGATOR_PRICE_USD,
+};
+
+// Cache for payment requirements
+let cachedPaymentRequirements: PaymentRequirements | null = null;
+let cacheTimestamp = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+async function getPaymentRequirements(): Promise<PaymentRequirements> {
+  if (cachedPaymentRequirements && Date.now() - cacheTimestamp < CACHE_TTL_MS) {
+    return cachedPaymentRequirements;
+  }
+  
+  cachedPaymentRequirements = await x402Handler.createPaymentRequirements(aggregatorRouteConfig as any);
+  cacheTimestamp = Date.now();
+  return cachedPaymentRequirements;
+}
+
+// Helper: Get or create user
+async function getOrCreateUser(address: string) {
+  let user = await prisma.user.findUnique({ where: { address } });
+  if (!user) {
+    user = await prisma.user.create({ data: { address } });
+  }
+  return user;
+}
+
+// Helper: Check if user has active aggregator access
+async function hasActiveAccess(userId: string): Promise<boolean> {
+  const access = await prisma.aggregatorAccess.findFirst({
+    where: {
+      userId,
+      active: true,
+      expiresAt: { gt: new Date() },
+    },
+  });
+  return !!access;
+}
+
+// Helper: Grant 24hr access to user
+async function grantAccess(userId: string, paymentId: string) {
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+  
+  return prisma.aggregatorAccess.create({
+    data: {
+      userId,
+      grantedAt: now,
+      expiresAt,
+      active: true,
+      paymentId,
+    },
+  });
+}
+
+// --- AGGREGATOR ENDPOINT (x402 protected) ---
+// POST /aggregator/solana
+// Human users: Get 24hr access
+// AI agents: Get top 5 safe + top 5 degen pools
+app.post('/aggregator/solana', async (req, res) => {
+  try {
+    const { userAddress, accessType = 'human' } = req.body;
+    
+    // Validate input
+    if (!userAddress) {
+      return res.status(400).json({ error: 'Missing userAddress in request body' });
+    }
+    
+    // Check for existing access (human users only)
+    if (accessType === 'human') {
+      const user = await prisma.user.findUnique({ where: { address: userAddress } });
+      if (user) {
+        const hasAccess = await hasActiveAccess(user.id);
+        if (hasAccess) {
+          // User already has access, return success
+          const access = await prisma.aggregatorAccess.findFirst({
+            where: { userId: user.id, active: true, expiresAt: { gt: new Date() } },
+          });
+          return res.json({
+            success: true,
+            accessGranted: true,
+            alreadyHadAccess: true,
+            expiresAt: access?.expiresAt?.toISOString(),
+            message: 'You already have active access to the aggregator',
+          });
+        }
+      }
+    }
+    
+    // Extract payment header
+    const paymentHeader = x402Handler.extractPayment(req.headers as Record<string, string | string[] | undefined>);
+    
+    // Get payment requirements
+    const paymentRequirements = await getPaymentRequirements();
+    
+    // If no payment header, return 402 Payment Required
+    if (!paymentHeader) {
+      const response402 = x402Handler.create402Response(paymentRequirements);
+      return res.status(402).json({
+        ...response402.body,
+        priceUsd: AGGREGATOR_PRICE_USD,
+        description: aggregatorRouteConfig.config.description,
+      });
+    }
+    
+    // Verify payment with facilitator
+    const verifyResult = await x402Handler.verifyPayment(paymentHeader, paymentRequirements);
+    
+    if (!verifyResult.isValid) {
+      console.error('[x402] Payment verification failed:', verifyResult.invalidReason);
+      const response402 = x402Handler.create402Response(paymentRequirements);
+      return res.status(402).json({
+        ...response402.body,
+        error: verifyResult.invalidReason || 'Payment verification failed',
+      });
+    }
+    
+    // Settle payment with facilitator
+    const settleResult = await x402Handler.settlePayment(paymentHeader, paymentRequirements);
+    
+    if (!settleResult.success) {
+      console.error('[x402] Payment settlement failed:', settleResult.errorReason);
+      return res.status(500).json({
+        error: 'Payment settlement failed',
+        reason: settleResult.errorReason,
+      });
+    }
+    
+    console.log('[x402] Payment verified and settled for:', userAddress);
+    
+    // Get or create user
+    const user = await getOrCreateUser(userAddress);
+    
+    // Record payment
+    const payment = await prisma.payment.create({
+      data: {
+        userId: user.id,
+        amount: AGGREGATOR_PRICE,
+        amountUsd: AGGREGATOR_PRICE_USD,
+        currency: 'USDC',
+        chain: 'solana',
+        payerAddress: userAddress,
+        service: 'aggregator',
+        accessType,
+        status: 'completed',
+      },
+    });
+    
+    // Handle based on access type
+    if (accessType === 'agent') {
+      // AI agent: Return top pools immediately
+      const pools = await fetchTopPools();
+      
+      return res.json({
+        success: true,
+        accessGranted: true,
+        accessType: 'agent',
+        pools,
+        paymentId: payment.id,
+      });
+    } else {
+      // Human user: Grant 24hr access
+      const access = await grantAccess(user.id, payment.id);
+      
+      return res.json({
+        success: true,
+        accessGranted: true,
+        accessType: 'human',
+        expiresAt: access.expiresAt.toISOString(),
+        message: 'Access granted for 24 hours. Enjoy the aggregator!',
+        paymentId: payment.id,
+      });
+    }
+  } catch (error) {
+    console.error('[Aggregator] Error:', error);
+    res.status(500).json({ 
+      error: error instanceof Error ? error.message : 'Internal server error' 
+    });
+  }
+});
+
+// GET /api/access/check - Check if user has active access (no payment required)
+app.get('/api/access/check', async (req, res) => {
+  try {
+    const userAddress = req.query.userAddress as string;
+    
+    if (!userAddress) {
+      return res.status(400).json({ error: 'Missing userAddress query parameter' });
+    }
+    
+    const user = await prisma.user.findUnique({ where: { address: userAddress } });
+    
+    if (!user) {
+      return res.json({ hasAccess: false });
+    }
+    
+    const access = await prisma.aggregatorAccess.findFirst({
+      where: {
+        userId: user.id,
+        active: true,
+        expiresAt: { gt: new Date() },
+      },
+    });
+    
+    if (!access) {
+      return res.json({ hasAccess: false });
+    }
+    
+    return res.json({
+      hasAccess: true,
+      expiresAt: access.expiresAt.toISOString(),
+      remainingHours: Math.max(0, Math.round((access.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60) * 10) / 10),
+    });
+  } catch (error) {
+    console.error('[Access Check] Error:', error);
+    res.status(500).json({ error: 'Failed to check access' });
+  }
+});
+
+// GET /api/aggregator - Get aggregator data (requires active access for human, payment for agents)
+app.get('/api/aggregator', async (req, res) => {
+  try {
+    const userAddress = req.query.userAddress as string;
+    
+    if (!userAddress) {
+      return res.status(400).json({ error: 'Missing userAddress query parameter' });
+    }
+    
+    const user = await prisma.user.findUnique({ where: { address: userAddress } });
+    
+    if (!user) {
+      return res.status(403).json({ 
+        error: 'No access', 
+        message: 'Please purchase access first via POST /aggregator/solana' 
+      });
+    }
+    
+    const hasAccess = await hasActiveAccess(user.id);
+    
+    if (!hasAccess) {
+      return res.status(403).json({ 
+        error: 'Access expired', 
+        message: 'Your access has expired. Please purchase again via POST /aggregator/solana' 
+      });
+    }
+    
+    // Return aggregator redirect - user accesses the main app
+    return res.json({
+      success: true,
+      hasAccess: true,
+      aggregatorUrl: `${mementoAppUrl}/aggregator`,
+      message: 'You have active access. Visit the aggregator URL.',
+    });
+  } catch (error) {
+    console.error('[API Aggregator] Error:', error);
+    res.status(500).json({ error: 'Failed to get aggregator data' });
+  }
+});
+
+// Helper: Fetch top pools from DefiLlama (for AI agents)
+async function fetchTopPools() {
+  try {
+    const response = await fetch('https://yields.llama.fi/pools');
+    const data = await response.json();
+    
+    if (!data.data) {
+      return { safe: [], degen: [] };
+    }
+    
+    const pools = data.data;
+    
+    // Safe mode: Basic stablecoins, TVL > $25M
+    const safeSymbols = ['USDC', 'USDT', 'DAI', 'USDS', 'USDG', 'PYUSD'];
+    const safePools = pools
+      .filter((p: any) => p.stablecoin === true)
+      .filter((p: any) => safeSymbols.some((s) => p.symbol?.toUpperCase().includes(s)))
+      .filter((p: any) => p.tvlUsd >= 25_000_000)
+      .filter((p: any) => p.apy >= 2)
+      .sort((a: any, b: any) => b.apy - a.apy)
+      .slice(0, 5)
+      .map((p: any) => ({
+        pool: p.pool,
+        chain: p.chain,
+        project: p.project,
+        symbol: p.symbol,
+        tvlUsd: p.tvlUsd,
+        apy: p.apy,
+        apyBase: p.apyBase,
+        apyReward: p.apyReward,
+      }));
+    
+    // Degen mode: Exotic stablecoins, TVL > $1M
+    const degenSymbols = ['USDE', 'SUSDE', 'SUSD', 'SFRAX', 'FRAX', 'CRVUSD', 'GHO', 'LUSD', 'MIM', 'EUSD'];
+    const degenPools = pools
+      .filter((p: any) => p.stablecoin === true)
+      .filter((p: any) => degenSymbols.some((s) => p.symbol?.toUpperCase().includes(s)))
+      .filter((p: any) => p.tvlUsd >= 1_000_000)
+      .filter((p: any) => p.apy >= 2)
+      .sort((a: any, b: any) => b.apy - a.apy)
+      .slice(0, 5)
+      .map((p: any) => ({
+        pool: p.pool,
+        chain: p.chain,
+        project: p.project,
+        symbol: p.symbol,
+        tvlUsd: p.tvlUsd,
+        apy: p.apy,
+        apyBase: p.apyBase,
+        apyReward: p.apyReward,
+      }));
+    
+    return { safe: safePools, degen: degenPools };
+  } catch (error) {
+    console.error('[FetchPools] Error:', error);
+    return { safe: [], degen: [] };
+  }
+}
+
+// Error handler
+app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('[Error]:', err);
+  const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+  res.status(500).json({
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? errorMessage : 'An error occurred',
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(`[x402-server] Memento server running on port ${PORT}`);
+  console.log(`[x402-server] Aggregator price: $${AGGREGATOR_PRICE_USD} USDC`);
+});
+
+
+
+
+
