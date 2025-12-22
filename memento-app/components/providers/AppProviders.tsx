@@ -20,7 +20,7 @@ const queryClient = new QueryClient();
 const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
 
 // Project ID from Reown Cloud
-const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || 'bb1ac17de596e3590a24a476c5cb419c';
+const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || 'a7872db4a69c8c1b91b3ef751f119bd0';
 
 // Create Solana adapter for Reown
 const solanaAdapter = new SolanaAdapter();
