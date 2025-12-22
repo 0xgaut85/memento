@@ -5,7 +5,7 @@
  * Replicating the nolimit app pattern exactly
  */
 
-import { ReactNode, useMemo } from 'react';
+import { ReactNode } from 'react';
 import { createAppKit } from '@reown/appkit/react';
 import { WagmiProvider } from 'wagmi';
 import { base, solana } from '@reown/appkit/networks';
@@ -13,6 +13,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { SolanaAdapter } from '@reown/appkit-adapter-solana/react';
 import { SolanaWalletProvider } from './SolanaWalletProvider';
+import type { AppKitNetwork } from '@reown/appkit/networks';
 
 // Create query client
 const queryClient = new QueryClient();
@@ -29,8 +30,8 @@ const wagmiAdapter = new WagmiAdapter({
 // Create Solana adapter for Reown (wallet display/connection UI)
 const solanaAdapter = new SolanaAdapter();
 
-// Only Base and Solana networks
-const networks = [base, solana] as const;
+// Networks as mutable tuple
+const networks: [AppKitNetwork, ...AppKitNetwork[]] = [base, solana];
 
 // Create App Kit - simple setup with Base and Solana only
 createAppKit({
