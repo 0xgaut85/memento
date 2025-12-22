@@ -3,18 +3,13 @@
 /**
  * SolanaWalletProvider - Native Solana Wallet Adapter
  * This handles the actual transaction signing for x402
- * Replicating the nolimit app pattern exactly
+ * Using only Phantom adapter to avoid native dependencies
  */
 
 import { ReactNode, useMemo } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import {
-  PhantomWalletAdapter,
-  SolflareWalletAdapter,
-  CoinbaseWalletAdapter,
-  LedgerWalletAdapter,
-} from '@solana/wallet-adapter-wallets';
+import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
 
 // Import Solana wallet adapter styles
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -29,16 +24,8 @@ interface SolanaWalletProviderProps {
 export function SolanaWalletProvider({ children }: SolanaWalletProviderProps) {
   const endpoint = useMemo(() => SOLANA_RPC_URL, []);
 
-  // Initialize wallets - these work with @solana/web3.js
-  const wallets = useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-      new CoinbaseWalletAdapter(),
-      new LedgerWalletAdapter(),
-    ],
-    []
-  );
+  // Use only Phantom - no native dependencies
+  const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
 
   return (
     <ConnectionProvider endpoint={endpoint}>
@@ -50,4 +37,3 @@ export function SolanaWalletProvider({ children }: SolanaWalletProviderProps) {
     </ConnectionProvider>
   );
 }
-
