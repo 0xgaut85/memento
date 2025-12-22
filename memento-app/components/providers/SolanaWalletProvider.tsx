@@ -2,8 +2,12 @@
 
 import { ReactNode, useMemo } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
+import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
 import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
+
+// Import wallet adapter styles
+import '@solana/wallet-adapter-react-ui/styles.css';
 
 // Helius RPC for reliability
 const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
@@ -16,7 +20,7 @@ export function SolanaWalletProvider({ children }: SolanaWalletProviderProps) {
   // Use Helius RPC
   const endpoint = useMemo(() => SOLANA_RPC_URL, []);
 
-  // Initialize wallets
+  // Initialize wallets - Phantom and Solflare
   const wallets = useMemo(
     () => [
       new PhantomWalletAdapter(),
@@ -28,7 +32,9 @@ export function SolanaWalletProvider({ children }: SolanaWalletProviderProps) {
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
-        {children}
+        <WalletModalProvider>
+          {children}
+        </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
   );

@@ -2,7 +2,6 @@
 
 import { useState, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { useAppKitAccount } from '@reown/appkit/react';
 import { createX402Client } from 'x402-solana/client';
 import type { VersionedTransaction } from '@solana/web3.js';
 
@@ -47,16 +46,12 @@ interface PaymentResponse {
 }
 
 export function useX402() {
-  // Use native Solana wallet adapter for x402 payments (best compatibility)
-  // Native adapter doesn't modify transactions, unlike Reown
-  const { publicKey, signTransaction, connected: nativeConnected } = useWallet();
+  // Use native Solana wallet adapter for x402 payments
+  // Native adapter doesn't modify transactions - required for x402 compatibility
+  const { publicKey, signTransaction, connected } = useWallet();
   
-  // Also check Reown for connection state (used for UI)
-  const { address: reownAddress, isConnected: reownConnected } = useAppKitAccount();
-  
-  // Prefer native wallet if available, fallback to Reown address
-  const address = publicKey?.toBase58() || reownAddress;
-  const isConnected = nativeConnected || reownConnected;
+  const address = publicKey?.toBase58();
+  const isConnected = connected && !!publicKey;
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
