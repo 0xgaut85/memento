@@ -4,17 +4,15 @@
  * SolanaWalletProvider - Native Solana Wallet Adapter
  * Exactly as per x402-solana README: https://github.com/PayAINetwork/x402-solana
  * 
- * This handles wallet connection AND transaction signing for x402
+ * Using individual wallet adapters to avoid heavy dependencies (usb, node-gyp)
  */
 
 import { ReactNode, useMemo } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import {
-  PhantomWalletAdapter,
-  SolflareWalletAdapter,
-} from '@solana/wallet-adapter-wallets';
+import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
+import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
 
 // Import Solana wallet adapter styles
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -33,7 +31,7 @@ export function SolanaWalletProvider({ children }: SolanaWalletProviderProps) {
   const network = WalletAdapterNetwork.Mainnet;
   const endpoint = useMemo(() => SOLANA_RPC_URL, []);
 
-  // Wallets - exactly as per x402-solana README
+  // Wallets - using individual adapters (lightweight, no native deps)
   const wallets = useMemo(
     () => [
       new PhantomWalletAdapter(),
