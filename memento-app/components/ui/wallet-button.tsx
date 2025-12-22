@@ -1,28 +1,27 @@
 'use client';
 
+import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { Wallet, LogOut, ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 export function WalletButton() {
-  const { publicKey, connected, disconnect, wallets, connecting } = useWallet();
-  const { setVisible, visible } = useWalletModal();
+  // Native Solana wallet adapter (for x402 compatibility)
+  const { publicKey, connected, disconnect: disconnectNative } = useWallet();
+  const { setVisible } = useWalletModal();
+  
+  // Reown AppKit (for additional wallet support)
+  const { open } = useAppKit();
+  const solanaAccount = useAppKitAccount({ namespace: 'solana' });
+  const { disconnect: disconnectReown } = useDisconnect();
+  
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const address = publicKey?.toBase58();
-
-  // #region agent log
-  console.log('[DBG:WALLET] WalletButton state', {
-    connected,
-    connecting,
-    hasPublicKey: !!publicKey,
-    address: address?.slice(0, 8),
-    walletsCount: wallets?.length,
-    modalVisible: visible,
-  });
-  // #endregion
+  // Prefer native adapter, fallback to Reown
+  const isConnected = connected || solanaAccount.isConnected;
+  const address = publicKey?.toBase58() || solanaAccount.address;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -35,16 +34,35 @@ export function WalletButton() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Format address for display (e.g., "3xK4...7b2F")
+  // Format address for display
   const formatAddress = (addr: string) => {
     if (!addr) return '';
     return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
   };
 
-  if (!connected || !address) {
+  const handleConnect = () => {
+    // Use native Solana adapter modal (better x402 compatibility)
+    setVisible(true);
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      if (connected) {
+        await disconnectNative();
+      }
+      if (solanaAccount.isConnected) {
+        await disconnectReown();
+      }
+    } catch (e) {
+      console.error('Disconnect error:', e);
+    }
+    setShowDropdown(false);
+  };
+
+  if (!isConnected || !address) {
     return (
       <button
-        onClick={() => setVisible(true)}
+        onClick={handleConnect}
         className="flex items-center gap-2 px-4 py-2.5 bg-pink-200 text-pink-800 hover:bg-pink-300 rounded-xl font-medium transition-colors"
       >
         <Wallet className="w-4 h-4" />
@@ -77,10 +95,7 @@ export function WalletButton() {
             Change Wallet
           </button>
           <button
-            onClick={() => {
-              disconnect();
-              setShowDropdown(false);
-            }}
+            onClick={handleDisconnect}
             className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100"
           >
             <LogOut className="w-4 h-4" />

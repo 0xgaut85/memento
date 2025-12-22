@@ -1,11 +1,16 @@
 'use client';
 
-import { ReactNode, useMemo, useEffect } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createAppKit } from '@reown/appkit/react';
+import { solana } from '@reown/appkit/networks';
+import { SolanaAdapter } from '@reown/appkit-adapter-solana/react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
-import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
+import {
+  PhantomWalletAdapter,
+  SolflareWalletAdapter,
+} from '@solana/wallet-adapter-wallets';
 
 // Import wallet adapter styles
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -16,6 +21,32 @@ const queryClient = new QueryClient();
 // Solana RPC URL
 const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
 
+// Project ID from Reown Cloud
+const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || 'bb1ac17de596e3590a24a476c5cb419c';
+
+// Create Solana adapter for Reown
+const solanaAdapter = new SolanaAdapter();
+
+// Create App Kit with Solana only
+createAppKit({
+  adapters: [solanaAdapter],
+  networks: [solana],
+  defaultNetwork: solana,
+  projectId,
+  metadata: {
+    name: 'Memento',
+    description: 'A new global privacy focused standard for earning yield on stablecoins',
+    url: 'https://app.memento.money',
+    icons: ['https://memento.money/transparentlogo.png'],
+  },
+  features: {
+    analytics: false,
+    email: false,
+    socials: false,
+  },
+  themeMode: 'light',
+});
+
 interface AppProvidersProps {
   children: ReactNode;
 }
@@ -23,35 +54,14 @@ interface AppProvidersProps {
 export function AppProviders({ children }: AppProvidersProps) {
   const endpoint = useMemo(() => SOLANA_RPC_URL, []);
   
+  // Initialize wallets for x402 compatibility
   const wallets = useMemo(
-    () => {
-      // #region agent log
-      console.log('[DBG:PROVIDER] Creating wallet adapters');
-      // #endregion
-      try {
-        const adapters = [
-          new PhantomWalletAdapter(),
-          new SolflareWalletAdapter(),
-        ];
-        // #region agent log
-        console.log('[DBG:PROVIDER] Wallet adapters created', { count: adapters.length, names: adapters.map(w => w.name) });
-        // #endregion
-        return adapters;
-      } catch (err) {
-        // #region agent log
-        console.error('[DBG:PROVIDER] Failed to create wallet adapters', err);
-        // #endregion
-        return [];
-      }
-    },
+    () => [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+    ],
     []
   );
-
-  // #region agent log
-  useEffect(() => {
-    console.log('[DBG:PROVIDER] AppProviders mounted', { endpoint, walletsCount: wallets.length });
-  }, [endpoint, wallets]);
-  // #endregion
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useAppKitAccount } from '@reown/appkit/react';
 import { createX402Client, X402Client } from 'x402-solana/client';
 import type { VersionedTransaction } from '@solana/web3.js';
 
@@ -46,26 +47,37 @@ interface PaymentResponse {
 }
 
 export function useX402() {
-  // Use official Solana wallet adapter as per x402-solana docs
+  // Native Solana wallet adapter (primary - best x402 compatibility)
   const { publicKey, signTransaction, connected } = useWallet();
   
-  const address = publicKey?.toBase58();
-  const isConnected = connected && !!publicKey;
+  // Reown Solana account (fallback)
+  const solanaAccount = useAppKitAccount({ namespace: 'solana' });
+  
+  // Prefer native adapter
+  const isConnected = connected || solanaAccount.isConnected;
+  const address = publicKey?.toBase58() || solanaAccount.address;
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Create x402 client exactly as nolimit does - using useMemo for stability
+  // Create x402 client - only works with native adapter (has signTransaction)
   const x402Client = useMemo((): X402Client | null => {
-    if (!isConnected || !publicKey || !signTransaction) {
+    // x402-solana requires native wallet adapter with signTransaction
+    if (!connected || !publicKey || !signTransaction) {
+      // #region agent log
+      console.log('[DBG:x402] No native wallet adapter available', { 
+        connected, 
+        hasPublicKey: !!publicKey, 
+        hasSignTx: !!signTransaction,
+        reownConnected: solanaAccount.isConnected 
+      });
+      // #endregion
       return null;
     }
     
     // #region agent log
-    console.log('[DBG:H1] Creating x402 client', {
+    console.log('[DBG:x402] Creating x402 client with native adapter', {
       publicKey: publicKey.toBase58(),
-      hasSignTransaction: !!signTransaction,
-      rpcUrl: SOLANA_RPC_URL,
     });
     // #endregion
     
@@ -75,46 +87,23 @@ export function useX402() {
         publicKey: publicKey,
         signTransaction: async (tx: VersionedTransaction): Promise<VersionedTransaction> => {
           // #region agent log
-          // Log transaction BEFORE signing
-          const txMessage = tx.message;
-          const instructionsBefore = txMessage.compiledInstructions.length;
-          const programIdsBefore = txMessage.staticAccountKeys
-            .filter((_, i) => txMessage.compiledInstructions.some(ix => ix.programIdIndex === i))
-            .map(k => k.toBase58());
-          console.log('[DBG:H1,H2] Transaction BEFORE signing', {
-            instructionCount: instructionsBefore,
-            programIds: programIdsBefore,
-          });
+          const ixCount = tx.message.compiledInstructions.length;
+          console.log('[DBG:x402] Transaction BEFORE signing', { instructionCount: ixCount });
           // #endregion
           
           const signedTx = await signTransaction(tx);
           
           // #region agent log
-          // Log transaction AFTER signing
-          const signedMessage = signedTx.message;
-          const instructionsAfter = signedMessage.compiledInstructions.length;
-          const programIdsAfter = signedMessage.staticAccountKeys
-            .filter((_, i) => signedMessage.compiledInstructions.some(ix => ix.programIdIndex === i))
-            .map(k => k.toBase58());
-          console.log('[DBG:H2] Transaction AFTER signing', {
-            instructionCountBefore: instructionsBefore,
-            instructionCountAfter: instructionsAfter,
-            didInstructionsChange: instructionsBefore !== instructionsAfter,
-            programIds: programIdsAfter,
+          const signedIxCount = signedTx.message.compiledInstructions.length;
+          console.log('[DBG:x402] Transaction AFTER signing', { 
+            instructionCountBefore: ixCount,
+            instructionCountAfter: signedIxCount 
           });
           // #endregion
           
           return signedTx as VersionedTransaction;
         },
       };
-      
-      // #region agent log
-      console.log('[DBG:H4,H5] x402 client config', {
-        network: 'solana',
-        rpcUrl: SOLANA_RPC_URL,
-        maxPaymentAmount: '10000000',
-      });
-      // #endregion
       
       return createX402Client({
         wallet: walletAdapter,
@@ -126,7 +115,7 @@ export function useX402() {
       console.error('[useX402] Failed to create x402 client:', err);
       return null;
     }
-  }, [isConnected, publicKey, signTransaction]);
+  }, [connected, publicKey, signTransaction, solanaAccount.isConnected]);
 
   // Check if user has active access
   const checkAccess = useCallback(async (): Promise<AccessCheckResponse> => {
@@ -153,23 +142,21 @@ export function useX402() {
   // Request access (triggers x402 payment flow)
   const requestAccess = useCallback(async (accessType: 'human' | 'agent' = 'human'): Promise<PaymentResponse> => {
     if (!x402Client || !address) {
-      setError('Wallet not connected. Please connect with Phantom or Solflare.');
-      return { success: false, accessGranted: false, error: 'Wallet not connected' };
+      const errorMsg = !connected 
+        ? 'Please connect your Solana wallet using the Phantom or Solflare option.'
+        : 'Wallet not ready for payments. Please reconnect.';
+      setError(errorMsg);
+      return { success: false, accessGranted: false, error: errorMsg };
     }
 
     setIsLoading(true);
     setError(null);
 
     // #region agent log
-    console.log('[DBG:H3] Starting payment request', {
-      address,
-      accessType,
-      serverUrl: X402_SERVER_URL,
-    });
+    console.log('[DBG:x402] Starting payment request', { address, accessType });
     // #endregion
 
     try {
-      // Make paid request - automatically handles 402 payments
       const response = await x402Client.fetch(`${X402_SERVER_URL}/aggregator/solana`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -180,10 +167,7 @@ export function useX402() {
       });
 
       // #region agent log
-      console.log('[DBG:H3,H4] Payment response received', {
-        status: response.status,
-        ok: response.ok,
-      });
+      console.log('[DBG:x402] Payment response', { status: response.status, ok: response.ok });
       // #endregion
 
       const result: PaymentResponse = await response.json();
@@ -197,10 +181,7 @@ export function useX402() {
       const errorMessage = err instanceof Error ? err.message : 'Payment failed';
       
       // #region agent log
-      console.log('[DBG:H1,H2,H3,H4,H5] Payment error', {
-        error: errorMessage,
-        errorType: err instanceof Error ? err.constructor.name : typeof err,
-      });
+      console.log('[DBG:x402] Payment error', { error: errorMessage });
       // #endregion
       
       console.error('[useX402] Request access error:', err);
@@ -209,7 +190,7 @@ export function useX402() {
     } finally {
       setIsLoading(false);
     }
-  }, [x402Client, address]);
+  }, [x402Client, address, connected]);
 
   return {
     checkAccess,
