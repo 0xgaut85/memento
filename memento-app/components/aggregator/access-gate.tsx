@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useX402 } from '@/lib/hooks/use-x402';
-import { Wallet, Lock, Unlock, Clock, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useAppKit } from '@reown/appkit/react';
+import { ArrowRight, Loader2, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 
 interface AccessGateProps {
@@ -12,6 +13,7 @@ interface AccessGateProps {
 
 export function AccessGate({ children }: AccessGateProps) {
   const { checkAccess, requestAccess, isLoading, error, isConnected, publicKey } = useX402();
+  const { open } = useAppKit();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [remainingHours, setRemainingHours] = useState<number | null>(null);
@@ -39,17 +41,16 @@ export function AccessGate({ children }: AccessGateProps) {
   // Handle payment request
   const handleRequestAccess = async () => {
     setPaymentStatus('processing');
-    setPaymentMessage('Preparing payment...');
+    setPaymentMessage('Initiating payment...');
 
     const result = await requestAccess('human');
 
     if (result.success && result.accessGranted) {
       setPaymentStatus('success');
-      setPaymentMessage(result.message || 'Access granted! Enjoy the aggregator.');
+      setPaymentMessage(result.message || 'Welcome to the aggregator.');
       setHasAccess(true);
       setExpiresAt(result.expiresAt || null);
       
-      // Close modal after 2 seconds
       setTimeout(() => {
         setShowPaymentModal(false);
         setPaymentStatus('idle');
@@ -60,229 +61,317 @@ export function AccessGate({ children }: AccessGateProps) {
     }
   };
 
-  // If still checking access, show loading
+  // Loading state
   if (hasAccess === null && isConnected) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Checking access...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center gap-6"
+        >
+          <Image
+            src="/transparentlogo.png"
+            alt="Memento"
+            width={64}
+            height={64}
+            className="w-16 h-16 animate-pulse"
+          />
+          <p className="text-lg font-serif italic text-foreground/60">Verifying access...</p>
+        </motion.div>
       </div>
     );
   }
 
-  // If user has access, show the aggregator
+  // User has access
   if (hasAccess) {
     return (
       <>
-        {/* Access Banner */}
-        <div className="fixed bottom-4 right-4 z-50">
-          <div className="bg-emerald-100 border border-emerald-200 rounded-xl px-4 py-2 flex items-center gap-2 shadow-lg">
-            <Unlock className="w-4 h-4 text-emerald-600" />
-            <span className="text-sm text-emerald-800">
-              Access active
-              {remainingHours !== null && ` • ${remainingHours}h remaining`}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed bottom-6 right-6 z-50"
+        >
+          <div className="bg-black text-white px-5 py-3 flex items-center gap-3 shadow-2xl">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium tracking-wide">
+              Premium Active
+              {remainingHours !== null && (
+                <span className="text-white/60 ml-2">• {remainingHours}h left</span>
+              )}
             </span>
           </div>
-        </div>
+        </motion.div>
         {children}
       </>
     );
   }
 
-  // If not connected or no access, show gate
+  // Access gate
   return (
     <>
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 px-4 py-24">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-md w-full"
-        >
-          <div className="bg-white/80 backdrop-blur-xl border border-white/30 rounded-3xl shadow-2xl overflow-hidden">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-pink-100 to-purple-100 px-8 py-6 text-center">
-              <div className="flex justify-center mb-4">
-                <div className="relative">
-                  <Image
-                    src="/transparentlogo.png"
-                    alt="Memento"
-                    width={64}
-                    height={64}
-                    className="w-16 h-16"
-                  />
-                  <div className="absolute -bottom-1 -right-1 bg-pink-500 rounded-full p-1.5">
-                    <Lock className="w-4 h-4 text-white" />
-                  </div>
-                </div>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Premium Access Required
-              </h2>
-              <p className="text-gray-600">
-                Get 24-hour access to the Stablecoin Yield Aggregator
-              </p>
-            </div>
+      <div className="min-h-screen bg-white flex flex-col">
+        {/* Main Content */}
+        <div className="flex-1 flex items-center justify-center px-6 py-24">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="max-w-2xl w-full text-center"
+          >
+            {/* Logo */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+              className="mb-10"
+            >
+              <Image
+                src="/transparentlogo.png"
+                alt="Memento"
+                width={80}
+                height={80}
+                className="w-20 h-20 mx-auto"
+              />
+            </motion.div>
 
-            {/* Content */}
-            <div className="px-8 py-6 space-y-6">
-              {/* Price */}
-              <div className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl p-4 text-center">
-                <p className="text-sm text-gray-500 mb-1">One-time payment</p>
-                <p className="text-3xl font-bold text-gray-900">$5 USDC</p>
-                <p className="text-sm text-gray-500 mt-1">24 hours of unlimited access</p>
-              </div>
+            {/* Headline */}
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter leading-[1.05] mb-4"
+            >
+              Premium Access
+            </motion.h1>
 
-              {/* Features */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                  <span>Access all stablecoin yield opportunities</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                  <span>Safe & Degen mode filtering</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                  <span>Real-time APY & TVL data</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <Clock className="w-5 h-5 text-blue-500 flex-shrink-0" />
-                  <span>Access valid for 24 hours</span>
-                </div>
-              </div>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
+              className="text-xl sm:text-2xl md:text-3xl font-serif italic text-foreground/70 mb-12"
+            >
+              Unlock the full yield aggregator
+            </motion.p>
 
-              {/* Action Button */}
-              {!isConnected ? (
+            {/* Price Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+              className="bg-gradient-to-br from-gray-50 to-white border border-gray-100 p-8 sm:p-10 mb-10 shadow-sm"
+            >
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-8">
                 <div className="text-center">
-                  <p className="text-sm text-gray-500 mb-3">Connect your wallet to continue</p>
-                  <button
-                    onClick={() => {
-                      // Trigger wallet connect via Reown AppKit
-                      const event = new CustomEvent('open-wallet-modal');
-                      window.dispatchEvent(event);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-pink-200 text-pink-800 hover:bg-pink-300 rounded-xl font-medium transition-colors"
-                  >
-                    <Wallet className="w-5 h-5" />
-                    Connect Wallet
-                  </button>
+                  <p className="text-5xl sm:text-6xl font-black tracking-tight">$5</p>
+                  <p className="text-sm text-foreground/50 mt-1 uppercase tracking-wider">USDC</p>
                 </div>
+                <div className="hidden sm:block w-px h-16 bg-gray-200" />
+                <div className="text-center">
+                  <p className="text-5xl sm:text-6xl font-black tracking-tight text-primary">24h</p>
+                  <p className="text-sm text-foreground/50 mt-1 uppercase tracking-wider">Access</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left text-sm text-foreground/70">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                  <span>All yield opportunities</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                  <span>Safe & Degen filtering</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                  <span>Real-time APY data</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                  <span>AI-curated selection</span>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* CTA Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.6 }}
+            >
+              {!isConnected ? (
+                <motion.button
+                  onClick={() => open()}
+                  className="group relative overflow-hidden w-full sm:w-auto text-lg px-12 py-5 bg-black text-white font-semibold transition-all duration-300"
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-3">
+                    Connect Wallet
+                    <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
+                  </span>
+                  <motion.div
+                    className="absolute inset-0 bg-primary"
+                    initial={{ x: "-100%" }}
+                    whileHover={{ x: 0 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </motion.button>
               ) : (
-                <button
+                <motion.button
                   onClick={() => setShowPaymentModal(true)}
                   disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:from-pink-600 hover:to-purple-600 rounded-xl font-medium transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="group relative overflow-hidden w-full sm:w-auto text-lg px-12 py-5 bg-black text-white font-semibold transition-all duration-300 disabled:opacity-50"
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
                 >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Unlock className="w-5 h-5" />
-                      Unlock Access for $5 USDC
-                    </>
-                  )}
-                </button>
+                  <span className="relative z-10 flex items-center justify-center gap-3">
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Unlock for $5 USDC
+                        <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
+                      </>
+                    )}
+                  </span>
+                  <motion.div
+                    className="absolute inset-0 bg-primary"
+                    initial={{ x: "-100%" }}
+                    whileHover={{ x: 0 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </motion.button>
               )}
 
               {error && (
-                <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 p-3 rounded-xl">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mt-6 flex items-center justify-center gap-2 text-red-600 text-sm"
+                >
+                  <AlertCircle className="w-4 h-4" />
                   {error}
-                </div>
+                </motion.div>
               )}
-            </div>
-          </div>
-        </motion.div>
+            </motion.div>
+
+            {/* Footer note */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8, duration: 0.6 }}
+              className="mt-12 text-sm text-foreground/40"
+            >
+              Powered by x402 protocol • Instant access after payment
+            </motion.p>
+          </motion.div>
+        </div>
       </div>
 
-      {/* Payment Confirmation Modal */}
+      {/* Payment Modal */}
       <AnimatePresence>
         {showPaymentModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4"
             onClick={() => paymentStatus !== 'processing' && setShowPaymentModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden"
+              className="bg-white max-w-md w-full overflow-hidden shadow-2xl"
             >
-              <div className="p-6 text-center">
+              <div className="p-8 sm:p-10 text-center">
                 {paymentStatus === 'processing' && (
-                  <>
-                    <Loader2 className="w-12 h-12 animate-spin text-pink-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Processing Payment</h3>
-                    <p className="text-gray-600 text-sm">{paymentMessage}</p>
-                    <p className="text-gray-400 text-xs mt-2">
-                      Please approve the transaction in your wallet
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <div className="w-16 h-16 mx-auto mb-6 relative">
+                      <div className="absolute inset-0 border-4 border-gray-100 rounded-full" />
+                      <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                    </div>
+                    <h3 className="text-2xl font-black tracking-tight mb-2">Processing</h3>
+                    <p className="text-foreground/60 font-serif italic">{paymentMessage}</p>
+                    <p className="text-foreground/40 text-sm mt-4">
+                      Approve the transaction in your wallet
                     </p>
-                  </>
+                  </motion.div>
                 )}
 
                 {paymentStatus === 'success' && (
-                  <>
-                    <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Access Granted!</h3>
-                    <p className="text-gray-600 text-sm">{paymentMessage}</p>
-                  </>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                  >
+                    <CheckCircle2 className="w-16 h-16 text-primary mx-auto mb-6" />
+                    <h3 className="text-2xl font-black tracking-tight mb-2">Access Granted</h3>
+                    <p className="text-foreground/60 font-serif italic">{paymentMessage}</p>
+                  </motion.div>
                 )}
 
                 {paymentStatus === 'error' && (
-                  <>
-                    <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Payment Failed</h3>
-                    <p className="text-gray-600 text-sm">{paymentMessage}</p>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-6" />
+                    <h3 className="text-2xl font-black tracking-tight mb-2">Payment Failed</h3>
+                    <p className="text-foreground/60 text-sm mb-6">{paymentMessage}</p>
                     <button
                       onClick={() => {
                         setPaymentStatus('idle');
                         handleRequestAccess();
                       }}
-                      className="mt-4 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors"
+                      className="px-8 py-3 bg-black text-white font-semibold hover:bg-primary transition-colors"
                     >
                       Try Again
                     </button>
-                  </>
+                  </motion.div>
                 )}
 
                 {paymentStatus === 'idle' && (
-                  <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
                     <Image
                       src="/transparentlogo.png"
                       alt="Memento"
-                      width={48}
-                      height={48}
-                      className="w-12 h-12 mx-auto mb-4"
+                      width={56}
+                      height={56}
+                      className="w-14 h-14 mx-auto mb-6"
                     />
-                    <h3 className="text-lg font-semibold mb-2">Confirm Payment</h3>
-                    <p className="text-gray-600 text-sm mb-4">
-                      You are about to pay <strong>$5 USDC</strong> for 24-hour access to the aggregator.
+                    <h3 className="text-2xl font-black tracking-tight mb-2">Confirm Payment</h3>
+                    <p className="text-foreground/60 mb-8">
+                      <span className="text-3xl font-black text-black">$5 USDC</span>
+                      <br />
+                      <span className="font-serif italic">for 24-hour premium access</span>
                     </p>
-                    <div className="flex gap-3">
+                    <div className="flex gap-4">
                       <button
                         onClick={() => setShowPaymentModal(false)}
-                        className="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                        className="flex-1 px-6 py-3 border-2 border-gray-200 text-foreground/70 font-semibold hover:border-gray-300 transition-colors"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={handleRequestAccess}
-                        className="flex-1 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:from-pink-600 hover:to-purple-600 transition-colors"
+                        className="flex-1 px-6 py-3 bg-black text-white font-semibold hover:bg-primary transition-colors"
                       >
-                        Pay $5 USDC
+                        Pay Now
                       </button>
                     </div>
-                  </>
+                  </motion.div>
                 )}
               </div>
             </motion.div>
@@ -292,8 +381,3 @@ export function AccessGate({ children }: AccessGateProps) {
     </>
   );
 }
-
-
-
-
-
