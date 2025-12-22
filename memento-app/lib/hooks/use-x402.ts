@@ -148,7 +148,7 @@ export function useX402() {
           address: address,
           publicKey: publicKey,
           signTransaction: async (tx: VersionedTransaction): Promise<VersionedTransaction> => {
-            const getIxMeta = (t: VersionedTransaction) => {
+            const getDetailedIxMeta = (t: VersionedTransaction) => {
               try {
                 const msg: any = (t as any).message;
                 const compiled = (msg?.compiledInstructions ?? msg?.instructions ?? []) as any[];
@@ -157,46 +157,35 @@ export function useX402() {
                   .map((ix: any) => keys?.[ix?.programIdIndex])
                   .map((k: any) => (typeof k?.toBase58 === 'function' ? k.toBase58() : null))
                   .filter(Boolean) as string[];
-                const counts = programIds.reduce(
-                  (acc, pid) => {
-                    if (pid.startsWith('ComputeBudget')) acc.computeBudget++;
-                    else if (pid.startsWith('AToken')) acc.associatedToken++;
-                    else if (pid.startsWith('Tokenkeg')) acc.token++;
-                    else if (pid === '11111111111111111111111111111111') acc.system++;
-                    else if (pid.startsWith('MemoSq')) acc.memo++;
-                    else acc.other++;
-                    return acc;
-                  },
-                  { computeBudget: 0, associatedToken: 0, token: 0, system: 0, memo: 0, other: 0 },
-                );
-                // Capture shortened program IDs for debugging (first 8 chars)
-                const programIdsShort = programIds.map(p => p.slice(0, 8));
                 return {
                   ixCount: compiled.length,
-                  addressTableLookups: Array.isArray(msg?.addressTableLookups) ? msg.addressTableLookups.length : null,
-                  programCounts: counts,
-                  programIdsShort,
+                  programIds: programIds, // Full program IDs for comparison
+                  programIdsShort: programIds.map((p: string) => `${p.slice(0,8)}...${p.slice(-4)}`),
                 };
               } catch {
-                return { ixCount: null, addressTableLookups: null, programCounts: null, programIdsShort: null };
+                return { ixCount: null, programIds: null, programIdsShort: null };
               }
             };
 
-            const before = getIxMeta(tx);
+            const before = getDetailedIxMeta(tx);
             // #region agent log (x402 debug)
-            fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'C',location:'use-x402.ts:signTransaction:before',message:'tx before wallet.signTransaction',data:{walletName,addressShort,meta:before},timestamp:Date.now()})}).catch(()=>{});
+            fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run2',hypothesisId:'C',location:'use-x402.ts:signTransaction:before',message:'tx BEFORE signing (detailed)',data:{walletName,addressShort,ixCount:before.ixCount,programIdsShort:before.programIdsShort,programIdsFull:before.programIds},timestamp:Date.now()})}).catch(()=>{});
             // #endregion
 
             try {
               const signedTx = await signTransaction(tx);
-              const after = getIxMeta(signedTx as VersionedTransaction);
+              const after = getDetailedIxMeta(signedTx as VersionedTransaction);
+              
+              // Find which program IDs were added
+              const addedPrograms = (after.programIds || []).filter((p: string) => !(before.programIds || []).includes(p));
+              
               // #region agent log (x402 debug)
-              fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'C',location:'use-x402.ts:signTransaction:after',message:'tx after wallet.signTransaction',data:{walletName,addressShort,meta:after,ixCountChanged:before?.ixCount!==after?.ixCount},timestamp:Date.now()})}).catch(()=>{});
+              fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run2',hypothesisId:'C',location:'use-x402.ts:signTransaction:after',message:'tx AFTER signing (detailed)',data:{walletName,addressShort,ixCountBefore:before.ixCount,ixCountAfter:after.ixCount,ixCountChanged:before?.ixCount!==after?.ixCount,programIdsShort:after.programIdsShort,programIdsFull:after.programIds,addedProgramIds:addedPrograms},timestamp:Date.now()})}).catch(()=>{});
               // #endregion
               return signedTx as VersionedTransaction;
             } catch (e) {
               // #region agent log (x402 debug)
-              fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'C',location:'use-x402.ts:signTransaction:error',message:'wallet.signTransaction threw',data:{walletName,addressShort,error:e instanceof Error?e.message:String(e)},timestamp:Date.now()})}).catch(()=>{});
+              fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run2',hypothesisId:'C',location:'use-x402.ts:signTransaction:error',message:'wallet.signTransaction threw',data:{walletName,addressShort,error:e instanceof Error?e.message:String(e)},timestamp:Date.now()})}).catch(()=>{});
               // #endregion
               throw e;
             }
