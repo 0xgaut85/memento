@@ -2,17 +2,17 @@
 
 /**
  * SolanaWalletProvider - Native Solana Wallet Adapter
- * Exactly as per x402-solana README: https://github.com/PayAINetwork/x402-solana
  * 
- * Using individual wallet adapters to avoid heavy dependencies (usb, node-gyp)
+ * Modern wallets (Phantom, Solflare, etc.) register themselves as "Standard Wallets"
+ * automatically via the Wallet Standard. We don't need to manually add adapters.
+ * 
+ * See: https://github.com/wallet-standard/wallet-standard
  */
 
 import { ReactNode, useMemo, useCallback } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-import { WalletAdapterNetwork, WalletError } from '@solana/wallet-adapter-base';
+import { WalletError } from '@solana/wallet-adapter-base';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
-import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
 
 // Import Solana wallet adapter styles
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -27,22 +27,19 @@ interface SolanaWalletProviderProps {
 }
 
 export function SolanaWalletProvider({ children }: SolanaWalletProviderProps) {
-  // Network - mainnet for production
-  const network = WalletAdapterNetwork.Mainnet;
   const endpoint = useMemo(() => SOLANA_RPC_URL, []);
 
-  // Wallets - using individual adapters (lightweight, no native deps)
-  const wallets = useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-    ],
-    []
-  );
+  // Empty array - let Standard Wallet detection handle wallet discovery
+  // Modern wallets like Phantom, Solflare, Backpack auto-register themselves
+  const wallets = useMemo(() => [], []);
 
   // Error handler for wallet connection errors
   const onError = useCallback((error: WalletError) => {
-    console.error('[Wallet Error]', error);
+    // Only log non-user-rejected errors
+    if (error.name !== 'WalletConnectionError' || 
+        !error.message?.includes('User rejected')) {
+      console.error('[Wallet Error]', error.name, error.message);
+    }
   }, []);
 
   return (
