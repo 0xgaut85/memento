@@ -5,6 +5,7 @@ import { createAppKit } from '@reown/appkit/react';
 import { SolanaAdapter } from '@reown/appkit-adapter-solana/react';
 import { solana, type AppKitNetwork } from '@reown/appkit/networks';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { SolanaWalletProvider } from './SolanaWalletProvider';
 
 // Create query client for React Query
 const queryClient = new QueryClient();
@@ -46,7 +47,9 @@ interface AppProvidersProps {
 export function AppProviders({ children }: AppProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
+      <SolanaWalletProvider>
+        {children}
+      </SolanaWalletProvider>
     </QueryClientProvider>
   );
 }

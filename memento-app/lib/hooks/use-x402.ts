@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useAppKitAccount, useAppKitProvider } from '@reown/appkit/react';
-import type { Provider } from '@reown/appkit-adapter-solana/react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useAppKitAccount } from '@reown/appkit/react';
 import { createX402Client } from 'x402-solana/client';
-import { PublicKey } from '@solana/web3.js';
+import type { VersionedTransaction } from '@solana/web3.js';
 
 // x402 Server URL
 const X402_SERVER_URL = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'https://x402.memento.money';
@@ -47,10 +47,16 @@ interface PaymentResponse {
 }
 
 export function useX402() {
-  // Use Reown AppKit hooks for Solana wallet
-  // Per Reown docs: https://docs.reown.com/appkit/react/core/hooks
-  const { address, isConnected } = useAppKitAccount();
-  const { walletProvider } = useAppKitProvider<Provider>('solana');
+  // Use native Solana wallet adapter for x402 payments (best compatibility)
+  // Native adapter doesn't modify transactions, unlike Reown
+  const { publicKey, signTransaction, connected: nativeConnected } = useWallet();
+  
+  // Also check Reown for connection state (used for UI)
+  const { address: reownAddress, isConnected: reownConnected } = useAppKitAccount();
+  
+  // Prefer native wallet if available, fallback to Reown address
+  const address = publicKey?.toBase58() || reownAddress;
+  const isConnected = nativeConnected || reownConnected;
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,8 +85,8 @@ export function useX402() {
 
   // Request access (triggers x402 payment flow)
   const requestAccess = useCallback(async (accessType: 'human' | 'agent' = 'human'): Promise<PaymentResponse> => {
-    if (!isConnected || !address || !walletProvider) {
-      setError('Wallet not connected');
+    if (!isConnected || !address || !publicKey || !signTransaction) {
+      setError('Wallet not connected. Please connect with Phantom or Solflare.');
       return { success: false, accessGranted: false, error: 'Wallet not connected' };
     }
 
@@ -88,20 +94,16 @@ export function useX402() {
     setError(null);
 
     try {
-      // Create x402 client with Reown Solana wallet provider
-      // Per x402-solana docs: https://www.npmjs.com/package/x402-solana
-      // Must include publicKey as PublicKey object for transaction construction
+      // Create x402 client with native Solana wallet adapter
+      // Native adapter is required for x402 compatibility - doesn't modify transactions
       const client = createX402Client({
         wallet: {
           address: address,
-          publicKey: new PublicKey(address),
-          signTransaction: async (tx) => {
-            // Use Reown's wallet provider to sign
-            // Per Reown Solana adapter docs
-            if (!walletProvider?.signTransaction) {
-              throw new Error('Wallet does not support signing');
-            }
-            return await walletProvider.signTransaction(tx);
+          publicKey: publicKey,
+          signTransaction: async (tx: VersionedTransaction): Promise<VersionedTransaction> => {
+            // Use native wallet adapter to sign (no transaction modification)
+            const signedTx = await signTransaction(tx);
+            return signedTx as VersionedTransaction;
           },
         },
         network: process.env.NODE_ENV === 'development' ? 'solana-devnet' : 'solana',
@@ -135,7 +137,7 @@ export function useX402() {
     } finally {
       setIsLoading(false);
     }
-  }, [isConnected, address, walletProvider]);
+  }, [isConnected, address, publicKey, signTransaction]);
 
   return {
     checkAccess,
