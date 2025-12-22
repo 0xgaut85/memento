@@ -10,8 +10,6 @@ import { ReactNode, useMemo } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
-import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
 
 // Import wallet adapter styles
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -29,14 +27,9 @@ interface AppProvidersProps {
 export function AppProviders({ children }: AppProvidersProps) {
   const endpoint = useMemo(() => SOLANA_RPC_URL, []);
   
-  // Initialize wallet adapters exactly as per docs
-  const wallets = useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-    ],
-    []
-  );
+  // Use empty array - modern wallets (Phantom, Solflare) register as Standard Wallets
+  // and are auto-detected by the adapter. Explicitly adding adapters can cause conflicts.
+  const wallets = useMemo(() => [], []);
 
   return (
     <QueryClientProvider client={queryClient}>
