@@ -11,25 +11,6 @@ const X402_SERVER_URL = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'https://x402
 // Solana RPC URL
 const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
 
-// Debug logging helper
-const debugLog = (location: string, message: string, data: Record<string, unknown>, hypothesisId: string) => {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      location,
-      message,
-      data,
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'v0.1.4-test',
-      hypothesisId,
-    }),
-  }).catch(() => {});
-  // #endregion
-};
-
 // Access check response
 interface AccessCheckResponse {
   hasAccess: boolean;
@@ -81,11 +62,11 @@ export function useX402() {
     }
     
     // #region agent log
-    debugLog('use-x402.ts:73', 'Creating x402 client', {
+    console.log('[DBG:H1] Creating x402 client', {
       publicKey: publicKey.toBase58(),
       hasSignTransaction: !!signTransaction,
       rpcUrl: SOLANA_RPC_URL,
-    }, 'H1');
+    });
     // #endregion
     
     try {
@@ -97,12 +78,13 @@ export function useX402() {
           // Log transaction BEFORE signing
           const txMessage = tx.message;
           const instructionsBefore = txMessage.compiledInstructions.length;
-          debugLog('use-x402.ts:88', 'Transaction BEFORE signing', {
+          const programIdsBefore = txMessage.staticAccountKeys
+            .filter((_, i) => txMessage.compiledInstructions.some(ix => ix.programIdIndex === i))
+            .map(k => k.toBase58());
+          console.log('[DBG:H1,H2] Transaction BEFORE signing', {
             instructionCount: instructionsBefore,
-            programIds: txMessage.staticAccountKeys
-              .filter((_, i) => txMessage.compiledInstructions.some(ix => ix.programIdIndex === i))
-              .map(k => k.toBase58()),
-          }, 'H1,H2');
+            programIds: programIdsBefore,
+          });
           // #endregion
           
           const signedTx = await signTransaction(tx);
@@ -111,14 +93,15 @@ export function useX402() {
           // Log transaction AFTER signing
           const signedMessage = signedTx.message;
           const instructionsAfter = signedMessage.compiledInstructions.length;
-          debugLog('use-x402.ts:101', 'Transaction AFTER signing', {
+          const programIdsAfter = signedMessage.staticAccountKeys
+            .filter((_, i) => signedMessage.compiledInstructions.some(ix => ix.programIdIndex === i))
+            .map(k => k.toBase58());
+          console.log('[DBG:H2] Transaction AFTER signing', {
             instructionCountBefore: instructionsBefore,
             instructionCountAfter: instructionsAfter,
             didInstructionsChange: instructionsBefore !== instructionsAfter,
-            programIds: signedMessage.staticAccountKeys
-              .filter((_, i) => signedMessage.compiledInstructions.some(ix => ix.programIdIndex === i))
-              .map(k => k.toBase58()),
-          }, 'H2');
+            programIds: programIdsAfter,
+          });
           // #endregion
           
           return signedTx as VersionedTransaction;
@@ -126,11 +109,11 @@ export function useX402() {
       };
       
       // #region agent log
-      debugLog('use-x402.ts:116', 'x402 client config', {
+      console.log('[DBG:H4,H5] x402 client config', {
         network: 'solana',
         rpcUrl: SOLANA_RPC_URL,
         maxPaymentAmount: '10000000',
-      }, 'H4,H5');
+      });
       // #endregion
       
       return createX402Client({
@@ -178,11 +161,11 @@ export function useX402() {
     setError(null);
 
     // #region agent log
-    debugLog('use-x402.ts:167', 'Starting payment request', {
+    console.log('[DBG:H3] Starting payment request', {
       address,
       accessType,
       serverUrl: X402_SERVER_URL,
-    }, 'H3');
+    });
     // #endregion
 
     try {
@@ -197,10 +180,10 @@ export function useX402() {
       });
 
       // #region agent log
-      debugLog('use-x402.ts:185', 'Payment response received', {
+      console.log('[DBG:H3,H4] Payment response received', {
         status: response.status,
         ok: response.ok,
-      }, 'H3,H4');
+      });
       // #endregion
 
       const result: PaymentResponse = await response.json();
@@ -214,10 +197,10 @@ export function useX402() {
       const errorMessage = err instanceof Error ? err.message : 'Payment failed';
       
       // #region agent log
-      debugLog('use-x402.ts:202', 'Payment error', {
+      console.log('[DBG:H1,H2,H3,H4,H5] Payment error', {
         error: errorMessage,
         errorType: err instanceof Error ? err.constructor.name : typeof err,
-      }, 'H1,H2,H3,H4,H5');
+      });
       // #endregion
       
       console.error('[useX402] Request access error:', err);
