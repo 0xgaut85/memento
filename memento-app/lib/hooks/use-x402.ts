@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { createX402Client } from '@payai/x402-solana/client';
+import { createX402Client, X402Client } from 'x402-solana/client';
 import type { VersionedTransaction } from '@solana/web3.js';
 
 // x402 Server URL
 const X402_SERVER_URL = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'https://x402.memento.money';
+
+// Solana RPC URL
+const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
 
 // Access check response
 interface AccessCheckResponse {
@@ -44,13 +47,41 @@ interface PaymentResponse {
 
 export function useX402() {
   // Use official Solana wallet adapter as per x402-solana docs
-  const wallet = useWallet();
+  const { publicKey, signTransaction, connected } = useWallet();
   
-  const address = wallet.publicKey?.toString();
-  const isConnected = wallet.connected && !!wallet.publicKey;
+  const address = publicKey?.toBase58();
+  const isConnected = connected && !!publicKey;
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Create x402 client exactly as nolimit does - using useMemo for stability
+  const x402Client = useMemo((): X402Client | null => {
+    if (!isConnected || !publicKey || !signTransaction) {
+      return null;
+    }
+    
+    try {
+      const walletAdapter = {
+        address: publicKey.toBase58(),
+        publicKey: publicKey,
+        signTransaction: async (tx: VersionedTransaction): Promise<VersionedTransaction> => {
+          const signedTx = await signTransaction(tx);
+          return signedTx as VersionedTransaction;
+        },
+      };
+      
+      return createX402Client({
+        wallet: walletAdapter,
+        network: 'solana',
+        rpcUrl: SOLANA_RPC_URL,
+        maxPaymentAmount: BigInt(10_000_000), // max 10 USDC
+      });
+    } catch (err) {
+      console.error('[useX402] Failed to create x402 client:', err);
+      return null;
+    }
+  }, [isConnected, publicKey, signTransaction]);
 
   // Check if user has active access
   const checkAccess = useCallback(async (): Promise<AccessCheckResponse> => {
@@ -76,7 +107,7 @@ export function useX402() {
 
   // Request access (triggers x402 payment flow)
   const requestAccess = useCallback(async (accessType: 'human' | 'agent' = 'human'): Promise<PaymentResponse> => {
-    if (!isConnected || !wallet.publicKey || !wallet.signTransaction) {
+    if (!x402Client || !address) {
       setError('Wallet not connected. Please connect with Phantom or Solflare.');
       return { success: false, accessGranted: false, error: 'Wallet not connected' };
     }
@@ -85,29 +116,12 @@ export function useX402() {
     setError(null);
 
     try {
-      // Create x402 client exactly as per official docs
-      // https://github.com/PayAINetwork/x402-solana
-      const walletAddress = wallet.publicKey.toString();
-      const client = createX402Client({
-        wallet: {
-          // Both publicKey and address for compatibility
-          publicKey: wallet.publicKey,
-          address: walletAddress,
-          signTransaction: async (tx: VersionedTransaction) => {
-            if (!wallet.signTransaction) throw new Error('Wallet does not support signing');
-            return await wallet.signTransaction(tx);
-          },
-        },
-        network: 'solana', // mainnet
-        amount: BigInt(10_000_000), // max 10 USDC safety limit
-      });
-
       // Make paid request - automatically handles 402 payments
-      const response = await client.fetch(`${X402_SERVER_URL}/aggregator/solana`, {
+      const response = await x402Client.fetch(`${X402_SERVER_URL}/aggregator/solana`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userAddress: wallet.publicKey.toString(),
+          userAddress: address,
           accessType,
         }),
       });
@@ -127,7 +141,7 @@ export function useX402() {
     } finally {
       setIsLoading(false);
     }
-  }, [isConnected, wallet]);
+  }, [x402Client, address]);
 
   return {
     checkAccess,
