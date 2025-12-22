@@ -2,19 +2,17 @@
 
 import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { Wallet, LogOut, ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 export function WalletButton() {
-  // Native Solana wallet adapter (for x402 compatibility)
-  const { publicKey, connected, disconnect: disconnectNative } = useWallet();
-  const { setVisible } = useWalletModal();
-  
-  // Reown AppKit (for additional wallet support)
+  // Reown AppKit hooks
   const { open } = useAppKit();
   const solanaAccount = useAppKitAccount({ namespace: 'solana' });
   const { disconnect: disconnectReown } = useDisconnect();
+  
+  // Native Solana wallet adapter (for x402 compatibility)
+  const { publicKey, connected, disconnect: disconnectNative } = useWallet();
   
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -40,9 +38,9 @@ export function WalletButton() {
     return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
   };
 
+  // Open Reown modal
   const handleConnect = () => {
-    // Use native Solana adapter modal (better x402 compatibility)
-    setVisible(true);
+    open();
   };
 
   const handleDisconnect = async () => {
@@ -86,13 +84,13 @@ export function WalletButton() {
         <div className="absolute right-0 top-full mt-2 w-48 bg-white/90 backdrop-blur-xl border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
           <button
             onClick={() => {
-              setVisible(true);
+              open({ view: 'Account' });
               setShowDropdown(false);
             }}
             className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
           >
             <Wallet className="w-4 h-4" />
-            Change Wallet
+            Account Details
           </button>
           <button
             onClick={handleDisconnect}
