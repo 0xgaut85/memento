@@ -169,13 +169,16 @@ export function useX402() {
                   },
                   { computeBudget: 0, associatedToken: 0, token: 0, system: 0, memo: 0, other: 0 },
                 );
+                // Capture shortened program IDs for debugging (first 8 chars)
+                const programIdsShort = programIds.map(p => p.slice(0, 8));
                 return {
                   ixCount: compiled.length,
                   addressTableLookups: Array.isArray(msg?.addressTableLookups) ? msg.addressTableLookups.length : null,
                   programCounts: counts,
+                  programIdsShort,
                 };
               } catch {
-                return { ixCount: null, addressTableLookups: null, programCounts: null };
+                return { ixCount: null, addressTableLookups: null, programCounts: null, programIdsShort: null };
               }
             };
 
