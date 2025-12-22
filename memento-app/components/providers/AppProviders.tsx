@@ -12,7 +12,7 @@ import type { AppKitNetwork } from '@reown/appkit/networks';
 const queryClient = new QueryClient();
 
 // Reown Project ID - get from https://cloud.reown.com
-const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || 'demo-project-id';
+const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || 'bb1ac17de596e3590a24a476c5cb419c';
 
 // Solana RPC URL
 const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
