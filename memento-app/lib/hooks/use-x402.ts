@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { useAppKitAccount, useAppKitProvider } from '@reown/appkit/react';
 import type { Provider } from '@reown/appkit-adapter-solana/react';
 import { createX402Client } from 'x402-solana/client';
+import { PublicKey } from '@solana/web3.js';
 
 // x402 Server URL
 const X402_SERVER_URL = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'https://x402.memento.money';
@@ -89,9 +90,11 @@ export function useX402() {
     try {
       // Create x402 client with Reown Solana wallet provider
       // Per x402-solana docs: https://www.npmjs.com/package/x402-solana
+      // Must include publicKey as PublicKey object for transaction construction
       const client = createX402Client({
         wallet: {
           address: address,
+          publicKey: new PublicKey(address),
           signTransaction: async (tx) => {
             // Use Reown's wallet provider to sign
             // Per Reown Solana adapter docs
