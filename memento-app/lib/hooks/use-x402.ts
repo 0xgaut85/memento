@@ -87,9 +87,12 @@ export function useX402() {
     try {
       // Create x402 client exactly as per official docs
       // https://github.com/PayAINetwork/x402-solana
+      const walletAddress = wallet.publicKey.toString();
       const client = createX402Client({
         wallet: {
-          address: wallet.publicKey.toString(),
+          // Both publicKey and address for compatibility
+          publicKey: wallet.publicKey,
+          address: walletAddress,
           signTransaction: async (tx: VersionedTransaction) => {
             if (!wallet.signTransaction) throw new Error('Wallet does not support signing');
             return await wallet.signTransaction(tx);
