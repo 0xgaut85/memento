@@ -8,6 +8,9 @@ import { createX402Client } from 'x402-solana/client';
 // x402 Server URL
 const X402_SERVER_URL = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'https://x402.memento.money';
 
+// Solana RPC URL (Helius for reliability)
+const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=0d1fd9dd-c8db-4e20-b550-6dbf601f65cc';
+
 // Access check response
 interface AccessCheckResponse {
   hasAccess: boolean;
@@ -99,6 +102,7 @@ export function useX402() {
           },
         },
         network: process.env.NODE_ENV === 'development' ? 'solana-devnet' : 'solana',
+        rpcUrl: SOLANA_RPC_URL,
         maxPaymentAmount: BigInt(10_000_000), // Max $10 USDC safety limit
       });
 
