@@ -1,17 +1,14 @@
 'use client';
 
-import { useWallet } from '@solana/wallet-adapter-react';
-import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { Wallet, LogOut, ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 export function WalletButton() {
-  const { publicKey, connected, disconnect } = useWallet();
-  const { setVisible } = useWalletModal();
+  const { open } = useAppKit();
+  const { address, isConnected } = useAppKitAccount();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const address = publicKey?.toBase58();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -30,10 +27,10 @@ export function WalletButton() {
     return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
   };
 
-  if (!connected || !address) {
+  if (!isConnected || !address) {
     return (
       <button
-        onClick={() => setVisible(true)}
+        onClick={() => open()}
         className="flex items-center gap-2 px-4 py-2.5 bg-pink-200 text-pink-800 hover:bg-pink-300 rounded-xl font-medium transition-colors"
       >
         <Wallet className="w-4 h-4" />
@@ -57,7 +54,7 @@ export function WalletButton() {
         <div className="absolute right-0 top-full mt-2 w-48 bg-white/90 backdrop-blur-xl border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
           <button
             onClick={() => {
-              setVisible(true);
+              open();
               setShowDropdown(false);
             }}
             className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
@@ -67,7 +64,7 @@ export function WalletButton() {
           </button>
           <button
             onClick={() => {
-              disconnect();
+              open({ view: 'Account' });
               setShowDropdown(false);
             }}
             className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100"
@@ -80,8 +77,3 @@ export function WalletButton() {
     </div>
   );
 }
-
-
-
-
-

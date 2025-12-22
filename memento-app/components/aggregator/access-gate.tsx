@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useX402 } from '@/lib/hooks/use-x402';
-import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { useAppKit } from '@reown/appkit/react';
 import { ArrowRight, Loader2, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 
@@ -13,7 +13,7 @@ interface AccessGateProps {
 
 export function AccessGate({ children }: AccessGateProps) {
   const { checkAccess, requestAccess, isLoading, error, isConnected, publicKey } = useX402();
-  const { setVisible } = useWalletModal();
+  const { open } = useAppKit();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [remainingHours, setRemainingHours] = useState<number | null>(null);
@@ -201,7 +201,7 @@ export function AccessGate({ children }: AccessGateProps) {
             >
               {!isConnected ? (
                 <motion.button
-                  onClick={() => setVisible(true)}
+                  onClick={() => open()}
                   className="group relative overflow-hidden w-full sm:w-auto text-lg px-12 py-5 bg-black text-white font-semibold transition-all duration-300"
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}

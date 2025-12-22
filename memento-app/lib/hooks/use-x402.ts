@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useAppKitAccount, useAppKitProvider } from '@reown/appkit/react';
+import type { Provider } from '@reown/appkit-adapter-solana/react';
 import { createX402Client } from 'x402-solana/client';
 import type { VersionedTransaction } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 
 // x402 Server URL
 const X402_SERVER_URL = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'https://x402.memento.money';
@@ -46,12 +48,9 @@ interface PaymentResponse {
 }
 
 export function useX402() {
-  // Use native Solana wallet adapter for x402 payments
-  // Native adapter doesn't modify transactions - required for x402 compatibility
-  const { publicKey, signTransaction, connected, wallet } = useWallet();
-  
-  const address = publicKey?.toBase58();
-  const isConnected = connected && !!publicKey;
+  // Use Reown AppKit for Solana wallet - doesn't modify transactions like native Phantom adapter
+  const { address, isConnected } = useAppKitAccount();
+  const { walletProvider } = useAppKitProvider<Provider>('solana');
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +79,7 @@ export function useX402() {
 
   // Request access (triggers x402 payment flow)
   const requestAccess = useCallback(async (accessType: 'human' | 'agent' = 'human'): Promise<PaymentResponse> => {
-    if (!isConnected || !address || !publicKey || !signTransaction) {
+    if (!isConnected || !address || !walletProvider) {
       setError('Wallet not connected. Please connect with Phantom or Solflare.');
       return { success: false, accessGranted: false, error: 'Wallet not connected' };
     }
@@ -89,109 +88,44 @@ export function useX402() {
     setError(null);
 
     try {
-      const rpcHost = (() => {
-        try {
-          return new URL(SOLANA_RPC_URL).host;
-        } catch {
-          return null;
-        }
-      })();
-      const x402Host = (() => {
-        try {
-          return new URL(X402_SERVER_URL).host;
-        } catch {
-          return null;
-        }
-      })();
-      const walletName = wallet?.adapter?.name || null;
       const addressShort = address ? `${address.slice(0, 4)}...${address.slice(-4)}` : null;
 
       // #region agent log (x402 debug)
-      fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'D',location:'use-x402.ts:requestAccess:entry',message:'requestAccess called',data:{isConnected,walletName,addressShort,nodeEnv:process.env.NODE_ENV||null,x402Host,rpcHost,rpcHasApiKey:SOLANA_RPC_URL.includes('api-key=')},timestamp:Date.now()})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run3-reown',hypothesisId:'REOWN',location:'use-x402.ts:requestAccess:entry',message:'requestAccess called with REOWN provider',data:{isConnected,addressShort,hasWalletProvider:!!walletProvider},timestamp:Date.now()})}).catch(()=>{});
       // #endregion
 
-      // Preflight: fetch payment requirements (402) for debugging
-      // #region agent log (x402 debug)
-      fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'A',location:'use-x402.ts:requestAccess:preflight:start',message:'preflight fetch for payment requirements',data:{x402Host,addressShort,accessType},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
-
-      try {
-        const preflight = await fetch(`${X402_SERVER_URL}/aggregator/solana`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userAddress: address, accessType }),
-        });
-        const preflightJson: any = await preflight.json().catch(() => null);
-        const accepts = Array.isArray(preflightJson?.accepts) ? preflightJson.accepts : [];
-        const acceptsSummary = accepts.slice(0, 5).map((a: any) => ({
-          scheme: a?.scheme ?? null,
-          network: a?.network ?? null,
-          amount: a?.amount ?? a?.maxAmountRequired ?? null,
-          payToShort: typeof a?.payTo === 'string' ? `${a.payTo.slice(0, 4)}...${a.payTo.slice(-4)}` : null,
-          assetShort: typeof a?.asset === 'string' ? `${a.asset.slice(0, 4)}...${a.asset.slice(-4)}` : null,
-          hasFeePayer: !!a?.extra?.feePayer,
-        }));
-
-        // #region agent log (x402 debug)
-        fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'A',location:'use-x402.ts:requestAccess:preflight:result',message:'preflight response summary',data:{status:preflight.status,x402Version:preflightJson?.x402Version??null,acceptsCount:accepts.length,acceptsSummary},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
-      } catch (e) {
-        // #region agent log (x402 debug)
-        fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'A',location:'use-x402.ts:requestAccess:preflight:error',message:'preflight failed',data:{error:e instanceof Error?e.message:String(e)},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
-      }
-
-      // Create x402 client with native Solana wallet adapter
-      // Native adapter is required for x402 compatibility - doesn't modify transactions
+      // Create x402 client with Reown's Solana provider
+      // Reown provider passes transactions directly without modification
       const client = createX402Client({
         wallet: {
           address: address,
-          publicKey: publicKey,
+          publicKey: new PublicKey(address),
           signTransaction: async (tx: VersionedTransaction): Promise<VersionedTransaction> => {
-            const getDetailedIxMeta = (t: VersionedTransaction) => {
+            // Log before signing
+            const getIxCount = (t: VersionedTransaction) => {
               try {
                 const msg: any = (t as any).message;
-                const compiled = (msg?.compiledInstructions ?? msg?.instructions ?? []) as any[];
-                const keys = (msg?.staticAccountKeys ?? msg?.accountKeys ?? []) as any[];
-                const programIds = compiled
-                  .map((ix: any) => keys?.[ix?.programIdIndex])
-                  .map((k: any) => (typeof k?.toBase58 === 'function' ? k.toBase58() : null))
-                  .filter(Boolean) as string[];
-                return {
-                  ixCount: compiled.length,
-                  programIds: programIds, // Full program IDs for comparison
-                  programIdsShort: programIds.map((p: string) => `${p.slice(0,8)}...${p.slice(-4)}`),
-                };
-              } catch {
-                return { ixCount: null, programIds: null, programIdsShort: null };
-              }
+                return (msg?.compiledInstructions ?? msg?.instructions ?? []).length;
+              } catch { return null; }
             };
 
-            const before = getDetailedIxMeta(tx);
+            const beforeCount = getIxCount(tx);
             // #region agent log (x402 debug)
-            fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run2',hypothesisId:'C',location:'use-x402.ts:signTransaction:before',message:'tx BEFORE signing (detailed)',data:{walletName,addressShort,ixCount:before.ixCount,programIdsShort:before.programIdsShort,programIdsFull:before.programIds},timestamp:Date.now()})}).catch(()=>{});
+            fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run3-reown',hypothesisId:'REOWN',location:'use-x402.ts:signTransaction:before',message:'tx BEFORE Reown signTransaction',data:{addressShort,ixCount:beforeCount},timestamp:Date.now()})}).catch(()=>{});
             // #endregion
 
-            try {
-              const signedTx = await signTransaction(tx);
-              const after = getDetailedIxMeta(signedTx as VersionedTransaction);
-              
-              // Find which program IDs were added
-              const addedPrograms = (after.programIds || []).filter((p: string) => !(before.programIds || []).includes(p));
-              
-              // #region agent log (x402 debug)
-              fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run2',hypothesisId:'C',location:'use-x402.ts:signTransaction:after',message:'tx AFTER signing (detailed)',data:{walletName,addressShort,ixCountBefore:before.ixCount,ixCountAfter:after.ixCount,ixCountChanged:before?.ixCount!==after?.ixCount,programIdsShort:after.programIdsShort,programIdsFull:after.programIds,addedProgramIds:addedPrograms},timestamp:Date.now()})}).catch(()=>{});
-              // #endregion
-              return signedTx as VersionedTransaction;
-            } catch (e) {
-              // #region agent log (x402 debug)
-              fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run2',hypothesisId:'C',location:'use-x402.ts:signTransaction:error',message:'wallet.signTransaction threw',data:{walletName,addressShort,error:e instanceof Error?e.message:String(e)},timestamp:Date.now()})}).catch(()=>{});
-              // #endregion
-              throw e;
-            }
+            // Use Reown's wallet provider to sign
+            const signedTx = await walletProvider.signTransaction(tx);
+            
+            const afterCount = getIxCount(signedTx as VersionedTransaction);
+            // #region agent log (x402 debug)
+            fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run3-reown',hypothesisId:'REOWN',location:'use-x402.ts:signTransaction:after',message:'tx AFTER Reown signTransaction',data:{addressShort,ixCountBefore:beforeCount,ixCountAfter:afterCount,ixCountChanged:beforeCount!==afterCount},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
+            
+            return signedTx as VersionedTransaction;
           },
         },
-        network: process.env.NODE_ENV === 'development' ? 'solana-devnet' : 'solana',
+        network: 'solana',
         rpcUrl: SOLANA_RPC_URL,
         maxPaymentAmount: BigInt(10_000_000), // Max $10 USDC safety limit
       });
@@ -210,7 +144,7 @@ export function useX402() {
       const result: PaymentResponse = await response.json();
 
       // #region agent log (x402 debug)
-      fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'B',location:'use-x402.ts:requestAccess:response',message:'client.fetch response received',data:{status:response.status,ok:response.ok,error:result?.error??null,accessGranted:result?.accessGranted??null},timestamp:Date.now()})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run3-reown',hypothesisId:'REOWN',location:'use-x402.ts:requestAccess:response',message:'client.fetch response received',data:{status:response.status,ok:response.ok,error:result?.error??null,accessGranted:result?.accessGranted??null},timestamp:Date.now()})}).catch(()=>{});
       // #endregion
 
       if (!response.ok) {
@@ -223,13 +157,13 @@ export function useX402() {
       console.error('[useX402] Request access error:', err);
       setError(errorMessage);
       // #region agent log (x402 debug)
-      fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'B',location:'use-x402.ts:requestAccess:catch',message:'requestAccess threw',data:{error:errorMessage},timestamp:Date.now()})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:'run3-reown',hypothesisId:'REOWN',location:'use-x402.ts:requestAccess:catch',message:'requestAccess threw',data:{error:errorMessage},timestamp:Date.now()})}).catch(()=>{});
       // #endregion
       return { success: false, accessGranted: false, error: errorMessage };
     } finally {
       setIsLoading(false);
     }
-  }, [isConnected, address, publicKey, signTransaction]);
+  }, [isConnected, address, walletProvider]);
 
   return {
     checkAccess,
