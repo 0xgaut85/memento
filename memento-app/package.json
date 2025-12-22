@@ -10,11 +10,16 @@
   },
   "dependencies": {
     "@payai/x402-solana": "^1.0.0-canary.1",
+    "@reown/appkit": "^1.8.14",
+    "@reown/appkit-adapter-solana": "^1.8.14",
+    "@reown/appkit-adapter-wagmi": "^1.8.14",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-react-ui": "^0.9.35",
+    "@solana/wallet-adapter-wallets": "^0.19.32",
     "@solana/web3.js": "^1.98.4",
     "@tanstack/react-query": "^5.90.12",
+    "@wagmi/connectors": "^5.7.12",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.26",
@@ -23,7 +28,9 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.6.0",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "viem": "^2.40.2",
+    "wagmi": "^2.18.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -34,5 +41,10 @@
     "eslint-config-next": "16.1.0",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@solana/wallet-adapter-wallets": {
+      "@solana/wallet-adapter-trezor": "npm:empty-npm-package@1.0.0"
+    }
   }
 }

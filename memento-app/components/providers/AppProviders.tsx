@@ -1,45 +1,69 @@
 'use client';
 
 /**
- * AppProviders - Solana Wallet Adapter setup
- * Following official @payai/x402-solana docs exactly
- * https://github.com/PayAINetwork/x402-solana
+ * AppProviders - Reown AppKit + Solana Wallet Adapter
+ * Replicating the nolimit app pattern exactly
  */
 
 import { ReactNode, useMemo } from 'react';
+import { createAppKit } from '@reown/appkit/react';
+import { WagmiProvider } from 'wagmi';
+import { base, solana } from '@reown/appkit/networks';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
+import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
+import { SolanaAdapter } from '@reown/appkit-adapter-solana/react';
+import { SolanaWalletProvider } from './SolanaWalletProvider';
 
-// Import wallet adapter styles
-import '@solana/wallet-adapter-react-ui/styles.css';
-
-// Create query client for React Query
+// Create query client
 const queryClient = new QueryClient();
 
-// Solana RPC URL (Helius mainnet)
-const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
+// Project ID from Reown Cloud
+const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || 'a7872db4a69c8c1b91b3ef751f119bd0';
+
+// Create Wagmi adapter for Base (EVM)
+const wagmiAdapter = new WagmiAdapter({
+  networks: [base],
+  projectId,
+});
+
+// Create Solana adapter for Reown (wallet display/connection UI)
+const solanaAdapter = new SolanaAdapter();
+
+// Only Base and Solana networks
+const networks = [base, solana] as const;
+
+// Create App Kit - simple setup with Base and Solana only
+createAppKit({
+  adapters: [wagmiAdapter, solanaAdapter],
+  networks,
+  defaultNetwork: base,
+  projectId,
+  metadata: {
+    name: 'Memento',
+    description: 'A new global privacy focused standard for earning yield on stablecoins',
+    url: 'https://app.memento.money',
+    icons: ['https://memento.money/transparentlogo.png'],
+  },
+  features: {
+    analytics: false,
+    email: false,
+    socials: false,
+  },
+  themeMode: 'light',
+});
 
 interface AppProvidersProps {
   children: ReactNode;
 }
 
 export function AppProviders({ children }: AppProvidersProps) {
-  const endpoint = useMemo(() => SOLANA_RPC_URL, []);
-  
-  // Use empty array - modern wallets (Phantom, Solflare) register as Standard Wallets
-  // and are auto-detected by the adapter. Explicitly adding adapters can cause conflicts.
-  const wallets = useMemo(() => [], []);
-
   return (
-    <QueryClientProvider client={queryClient}>
-      <ConnectionProvider endpoint={endpoint}>
-        <WalletProvider wallets={wallets} autoConnect>
-          <WalletModalProvider>
-            {children}
-          </WalletModalProvider>
-        </WalletProvider>
-      </ConnectionProvider>
-    </QueryClientProvider>
+    <WagmiProvider config={wagmiAdapter.wagmiConfig}>
+      <QueryClientProvider client={queryClient}>
+        <SolanaWalletProvider>
+          {children}
+        </SolanaWalletProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }
