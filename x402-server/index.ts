@@ -13,7 +13,7 @@ import { config } from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import { X402PaymentHandler, PaymentRequirements } from 'x402-solana/server';
+import { X402PaymentHandler, PaymentRequirements } from '@payai/x402-solana/server';
 import { PrismaClient } from '@prisma/client';
 
 config();
