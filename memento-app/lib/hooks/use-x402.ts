@@ -132,23 +132,28 @@ export function useX402() {
       
       console.log('[x402] Creating x402 client...');
       
-      // Use publicKey directly as per README wallet adapter interface
+      // EXACTLY as per README example - use address string
       const client = createX402Client({
         wallet: {
-          publicKey: wallet.publicKey, // Use publicKey object, not string
+          address: wallet.publicKey.toString(),
           signTransaction: async (tx) => {
-            console.log('[x402] signTransaction called - prompting wallet...');
+            console.log('[x402] >>> signTransaction called <<<');
             if (!wallet.signTransaction) throw new Error('Wallet does not support signing');
-            const signed = await wallet.signTransaction(tx);
-            console.log('[x402] Transaction signed successfully!');
-            return signed;
+            try {
+              const signed = await wallet.signTransaction(tx);
+              console.log('[x402] >>> Transaction signed! <<<');
+              return signed;
+            } catch (signErr) {
+              console.error('[x402] signTransaction error:', signErr);
+              throw signErr;
+            }
           },
         },
-        network: 'solana', // mainnet
-        rpcUrl: HELIUS_RPC, // custom RPC to avoid rate limits
-        amount: BigInt(10_000_000), // max 10 USDC safety limit
-        customFetch: createProxyFetch(), // proxy for CORS
-        verbose: true, // Enable x402 client debug logging
+        network: 'solana',
+        rpcUrl: HELIUS_RPC,
+        amount: BigInt(10_000_000),
+        customFetch: createProxyFetch(),
+        verbose: true,
       });
 
       console.log('[x402] Client created, making paid request...');
