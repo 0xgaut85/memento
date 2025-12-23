@@ -256,25 +256,27 @@ export function useX402() {
 
       const result: PaymentResponse = await response.json();
 
-      console.log('[x402 DEBUG] Response body', result);
+      console.log('[x402 DEBUG] Full response body:', JSON.stringify(result, null, 2));
       
-      // Log server debug info if present (type assertion for debug field)
+      // Log all server debug info
       const resultAny = result as any;
       if (resultAny._serverDebug) {
         console.log('[x402 DEBUG] Server received headers:', resultAny._serverDebug.receivedHeaders);
-        console.log('[x402 DEBUG] Server has payment sig:', resultAny._serverDebug.hasPaymentSig);
       }
       if (resultAny._debug) {
         console.log('[x402 DEBUG] Server config:', resultAny._debug);
       }
       if (resultAny.verifyResult) {
-        console.log('[x402 DEBUG] Full verify result:', resultAny.verifyResult);
+        console.log('[x402 DEBUG] Verify result:', resultAny.verifyResult);
       }
       if (resultAny.details) {
-        console.log('[x402 DEBUG] Error details from server:', resultAny.details);
+        console.log('[x402 DEBUG] Error details:', resultAny.details);
       }
-      if (resultAny.stack) {
-        console.log('[x402 DEBUG] Error stack:', resultAny.stack);
+      if (resultAny.responseData) {
+        console.log('[x402 DEBUG] Facilitator response:', resultAny.responseData);
+      }
+      if (resultAny.responseStatus) {
+        console.log('[x402 DEBUG] Facilitator status:', resultAny.responseStatus);
       }
 
       if (!response.ok) {
