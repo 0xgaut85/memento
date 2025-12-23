@@ -2,65 +2,31 @@
 
 /**
  * useX402 Hook - x402 payment integration
- * Exactly as per x402-solana README: https://github.com/PayAINetwork/x402-solana
- * 
- * Uses native Solana Wallet Adapter for wallet connection and transaction signing
- * 
- * Note: This hook requires WalletProvider context. Use within components that
- * are children of SolanaWalletProvider.
+ * EXACTLY as per x402-solana README: https://github.com/PayAINetwork/x402-solana
  */
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 
-// x402 Server URL
 const X402_SERVER_URL = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'https://x402.memento.money';
 
-// Helius RPC for mainnet
-const HELIUS_RPC = 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
-
-// Proxy URL for CORS bypass (same domain as frontend)
-const PROXY_URL = '/api/proxy';
-
-/**
- * Create a custom fetch function that routes requests through our proxy
- * This bypasses CORS issues with custom headers like PAYMENT-SIGNATURE
- * As per x402-solana README
- */
+// Proxy fetch to bypass CORS - as per README
 function createProxyFetch(): typeof fetch {
-  console.log('[x402 DEBUG] Creating proxy fetch function');
-  const proxyFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    console.log('[x402 DEBUG] PROXY FETCH CALLED!', { input: input.toString().substring(0, 50) });
+  return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const targetUrl = typeof input === 'string' ? input : input.toString();
     
-    // Convert Headers to plain object
     const headersObj: Record<string, string> = {};
     if (init?.headers) {
       if (init.headers instanceof Headers) {
-        init.headers.forEach((value, key) => {
-          headersObj[key] = value;
-        });
+        init.headers.forEach((value, key) => { headersObj[key] = value; });
       } else if (Array.isArray(init.headers)) {
-        init.headers.forEach(([key, value]) => {
-          headersObj[key] = value;
-        });
+        init.headers.forEach(([key, value]) => { headersObj[key] = value; });
       } else {
         Object.assign(headersObj, init.headers);
       }
     }
 
-    // Check for payment header (could be any case)
-    const paymentHeader = headersObj['PAYMENT-SIGNATURE'] || headersObj['payment-signature'];
-    console.log('[x402 DEBUG] Proxy request:', { 
-      url: targetUrl, 
-      method: init?.method, 
-      hasPaymentHeader: !!paymentHeader,
-      paymentHeaderLength: paymentHeader ? paymentHeader.length : 0,
-      allHeaders: Object.keys(headersObj),
-    });
-
-    // Send request through proxy server (same domain, no CORS)
-    const response = await globalThis.fetch(PROXY_URL, {
+    const response = await globalThis.fetch('/api/proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -73,15 +39,6 @@ function createProxyFetch(): typeof fetch {
 
     const proxyData = await response.json();
 
-    // Log debug info from proxy
-    if (proxyData._debug) {
-      console.log('[x402 DEBUG] Proxy forwarded headers:', proxyData._debug.forwardedHeaderKeys);
-      console.log('[x402 DEBUG] Proxy had payment header:', proxyData._debug.hadPaymentHeader);
-      console.log('[x402 DEBUG] Proxy payment header length:', proxyData._debug.paymentHeaderLength);
-    }
-    console.log('[x402 DEBUG] Proxy response status:', proxyData.status);
-
-    // Reconstruct Response object with original status
     return new Response(
       typeof proxyData.data === 'string' ? proxyData.data : JSON.stringify(proxyData.data),
       {
@@ -91,123 +48,38 @@ function createProxyFetch(): typeof fetch {
       }
     );
   };
-  return proxyFetch as typeof fetch;
 }
 
-// Access check response
 interface AccessCheckResponse {
   hasAccess: boolean;
   expiresAt?: string;
   remainingHours?: number;
 }
 
-// Payment response
 interface PaymentResponse {
   success: boolean;
   accessGranted: boolean;
   expiresAt?: string;
   message?: string;
   error?: string;
-  pools?: {
-    safe: Array<{
-      pool: string;
-      chain: string;
-      project: string;
-      symbol: string;
-      tvlUsd: number;
-      apy: number;
-    }>;
-    degen: Array<{
-      pool: string;
-      chain: string;
-      project: string;
-      symbol: string;
-      tvlUsd: number;
-      apy: number;
-    }>;
-  };
 }
 
-// Default return value for SSR/no-context scenarios
-const defaultReturn = {
-  checkAccess: async () => ({ hasAccess: false }),
-  requestAccess: async () => ({ success: false, accessGranted: false, error: 'Wallet not available' }),
-  isLoading: false,
-  error: null,
-  isConnected: false,
-  publicKey: undefined,
-};
-
 export function useX402() {
-  // Track if we're on client side
   const [mounted, setMounted] = useState(false);
-  
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Native Solana wallet adapter - exactly as per x402-solana README
   const wallet = useWallet();
-  
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => { setMounted(true); }, []);
 
-  // Connection state from native adapter (only after mount)
   const isConnected = mounted && wallet.connected;
   const address = mounted ? wallet.publicKey?.toString() : undefined;
 
-  // Create x402 client factory - exactly as per x402-solana README
-  const createX402ClientFactory = useCallback(async () => {
-    if (!wallet.connected || !wallet.publicKey || !wallet.signTransaction) {
-      return null;
-    }
-
-    const { createX402Client } = await import('@payai/x402-solana/client');
-    console.log('[x402 DEBUG] Creating client with wallet:', wallet.publicKey.toString());
-    
-    const proxyFetch = createProxyFetch();
-    console.log('[x402 DEBUG] Proxy fetch created, type:', typeof proxyFetch);
-    
-    const clientConfig = {
-      wallet: {
-        address: wallet.publicKey.toString(),
-        signTransaction: async (tx: any) => {
-          console.log('[x402 DEBUG] Wallet signTransaction called');
-          if (!wallet.signTransaction) {
-            throw new Error('Wallet does not support signing');
-          }
-          const signed = await wallet.signTransaction(tx);
-          console.log('[x402 DEBUG] Transaction signed successfully');
-          return signed;
-        },
-      },
-      network: 'solana' as const, // mainnet
-      rpcUrl: HELIUS_RPC,
-      amount: BigInt(10_000_000),
-      verbose: true,
-      customFetch: proxyFetch,
-    };
-    
-    console.log('[x402 DEBUG] Client config keys:', Object.keys(clientConfig));
-    
-    return createX402Client(clientConfig);
-  }, [wallet.connected, wallet.publicKey, wallet.signTransaction]);
-
-  // Check if user has active access
   const checkAccess = useCallback(async (): Promise<AccessCheckResponse> => {
-    if (!address) {
-      return { hasAccess: false };
-    }
-
+    if (!address) return { hasAccess: false };
     try {
-      const response = await fetch(
-        `${X402_SERVER_URL}/api/access/check?userAddress=${address}`
-      );
-      
-      if (!response.ok) {
-        throw new Error('Failed to check access');
-      }
-      
+      const response = await fetch(`${X402_SERVER_URL}/api/access/check?userAddress=${address}`);
+      if (!response.ok) throw new Error('Failed to check access');
       return await response.json();
     } catch (err) {
       console.error('[useX402] Check access error:', err);
@@ -215,90 +87,60 @@ export function useX402() {
     }
   }, [address]);
 
-  // Request access (triggers x402 payment flow)
   const requestAccess = useCallback(async (accessType: 'human' | 'agent' = 'human'): Promise<PaymentResponse> => {
     if (!isConnected || !address) {
-      const errorMsg = 'Please connect your Solana wallet first.';
-      setError(errorMsg);
-      return { success: false, accessGranted: false, error: errorMsg };
+      setError('Please connect your wallet first.');
+      return { success: false, accessGranted: false, error: 'Wallet not connected' };
+    }
+
+    if (!wallet.publicKey || !wallet.signTransaction) {
+      setError('Wallet not ready.');
+      return { success: false, accessGranted: false, error: 'Wallet not ready' };
     }
 
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('[x402 DEBUG] Starting payment flow', { address, accessType, serverUrl: X402_SERVER_URL });
-
-      // Create the client dynamically
-      const client = await createX402ClientFactory();
+      // Import and create client - EXACTLY as per README
+      const { createX402Client } = await import('@payai/x402-solana/client');
       
-      if (!client) {
-        throw new Error('Wallet not ready for payments. Please reconnect.');
-      }
+      const client = createX402Client({
+        wallet: {
+          address: wallet.publicKey.toString(),
+          signTransaction: async (tx) => {
+            if (!wallet.signTransaction) throw new Error('Wallet does not support signing');
+            return await wallet.signTransaction(tx);
+          },
+        },
+        network: 'solana', // mainnet
+        amount: BigInt(10_000_000), // max 10 USDC safety limit
+        customFetch: createProxyFetch(), // proxy for CORS
+      });
 
-      console.log('[x402 DEBUG] Client created with proxy, making paid request...');
-      
-      // Make a paid request through x402 client with proxy (bypasses CORS)
+      // Make paid request - EXACTLY as per README
       const response = await client.fetch(`${X402_SERVER_URL}/aggregator/solana`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userAddress: address,
-          accessType,
-        }),
+        body: JSON.stringify({ userAddress: address, accessType }),
       });
 
-      console.log('[x402 DEBUG] Response received', { 
-        status: response.status, 
-        ok: response.ok,
-        statusText: response.statusText
-      });
-
-      const result: PaymentResponse = await response.json();
-
-      console.log('[x402 DEBUG] Full response body:', JSON.stringify(result, null, 2));
-      
-      // Log all server debug info
-      const resultAny = result as any;
-      if (resultAny._serverDebug) {
-        console.log('[x402 DEBUG] Server received headers:', resultAny._serverDebug.receivedHeaders);
-      }
-      if (resultAny._debug) {
-        console.log('[x402 DEBUG] Server config:', resultAny._debug);
-      }
-      if (resultAny.verifyResult) {
-        console.log('[x402 DEBUG] Verify result:', resultAny.verifyResult);
-      }
-      if (resultAny.details) {
-        console.log('[x402 DEBUG] Error details:', resultAny.details);
-      }
-      if (resultAny.responseData) {
-        console.log('[x402 DEBUG] Facilitator response:', resultAny.responseData);
-      }
-      if (resultAny.responseStatus) {
-        console.log('[x402 DEBUG] Facilitator status:', resultAny.responseStatus);
-      }
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Payment failed');
+        throw new Error(result.error || result.reason || 'Payment failed');
       }
 
       return result;
     } catch (err) {
-      console.error('[x402 DEBUG] Error details:', {
-        name: err instanceof Error ? err.name : 'Unknown',
-        message: err instanceof Error ? err.message : String(err),
-        stack: err instanceof Error ? err.stack : undefined
-      });
-
       const errorMessage = err instanceof Error ? err.message : 'Payment failed';
-      console.error('[useX402] Request access error:', err);
+      console.error('[useX402] Error:', err);
       setError(errorMessage);
       return { success: false, accessGranted: false, error: errorMessage };
     } finally {
       setIsLoading(false);
     }
-  }, [isConnected, address, createX402ClientFactory]);
+  }, [isConnected, address, wallet.publicKey, wallet.signTransaction]);
 
   return {
     checkAccess,
