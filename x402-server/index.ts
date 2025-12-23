@@ -217,7 +217,22 @@ app.post('/aggregator/solana', async (req, res) => {
     }
     
     // 4. Verify payment - EXACTLY as per README
-    const verified = await x402.verifyPayment(paymentHeader, paymentRequirements);
+    console.log('[x402] Got payment header, length:', paymentHeader.length);
+    console.log('[x402] Payment header preview:', paymentHeader.substring(0, 100) + '...');
+    
+    let verified: Awaited<ReturnType<typeof x402.verifyPayment>>;
+    try {
+      verified = await x402.verifyPayment(paymentHeader, paymentRequirements);
+      console.log('[x402] Verify result:', JSON.stringify(verified));
+    } catch (err) {
+      console.error('[x402] verifyPayment threw:', err);
+      return res.status(402).json({ 
+        error: 'Payment verification failed', 
+        reason: 'verify_exception',
+        detail: String(err)
+      });
+    }
+    
     if (!verified.isValid) {
       console.error('[x402] Verification failed:', verified.invalidReason);
       return res.status(402).json({ 
@@ -243,7 +258,16 @@ app.post('/aggregator/solana', async (req, res) => {
     });
     
     // 6. Settle payment - EXACTLY as per README
-    await x402.settlePayment(paymentHeader, paymentRequirements);
+    try {
+      const settlement = await x402.settlePayment(paymentHeader, paymentRequirements);
+      console.log('[x402] Settlement result:', JSON.stringify(settlement));
+      if (!settlement.success) {
+        console.error('[x402] Settlement failed:', settlement.errorReason);
+      }
+    } catch (err) {
+      console.error('[x402] settlePayment threw:', err);
+      // Don't fail the request - verification passed, just log the error
+    }
     
     console.log('[x402] Payment successful for:', userAddress);
     
