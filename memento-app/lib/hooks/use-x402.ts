@@ -13,10 +13,16 @@ const X402_SERVER_URL = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'https://x402
 // Helius RPC for mainnet - avoids rate limits on public RPC
 const HELIUS_RPC = 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
 
+// NDJSON debug ingest endpoint (local)
+const DEBUG_INGEST_ENDPOINT =
+  'http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337';
+
 // Proxy fetch to bypass CORS - as per README
-function createProxyFetch(): typeof fetch {
+function createProxyFetch(debug: { enabled: boolean; runId: string }): typeof fetch {
+  let seq = 0;
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const targetUrl = typeof input === 'string' ? input : input.toString();
+    const callId = ++seq;
     
     const headersObj: Record<string, string> = {};
     if (init?.headers) {
@@ -29,18 +35,47 @@ function createProxyFetch(): typeof fetch {
       }
     }
 
+    const paymentSig =
+      headersObj['PAYMENT-SIGNATURE'] ||
+      headersObj['payment-signature'] ||
+      headersObj['X-PAYMENT'] ||
+      headersObj['x-payment'];
+
+    let targetHost = 'unknown';
+    try {
+      targetHost = new URL(targetUrl).host;
+    } catch {
+      targetHost = 'invalid_or_relative';
+    }
+
+    // #region agent log
+    debug.enabled && fetch(DEBUG_INGEST_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:debug.runId,hypothesisId:'B',location:'memento-app/lib/hooks/use-x402.ts:createProxyFetch',message:'customFetch -> proxy (pre)',data:{callId,targetHost,method:init?.method||'GET',hasPaymentSig:!!paymentSig,paymentSigLen:paymentSig?String(paymentSig).length:0,headerKeys:Object.keys(headersObj).slice(0,20)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
     const response = await globalThis.fetch('/api/proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         url: targetUrl,
         method: init?.method || 'GET',
-        headers: headersObj,
+        headers: {
+          ...headersObj,
+          ...(debug.enabled ? { 'x-memento-debug': '1' } : {}),
+        },
         body: init?.body
       })
     });
 
     const proxyData = await response.json();
+
+    const dataObj =
+      proxyData && typeof proxyData === 'object' && proxyData.data && typeof proxyData.data === 'object'
+        ? (proxyData.data as Record<string, unknown>)
+        : null;
+
+    // #region agent log
+    debug.enabled && fetch(DEBUG_INGEST_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:debug.runId,hypothesisId:'A',location:'memento-app/lib/hooks/use-x402.ts:createProxyFetch',message:'customFetch <- proxy (post)',data:{callId,status:proxyData?.status,ok:proxyData?.status>=200&&proxyData?.status<300,hasData:!!proxyData?.data,dataType:typeof proxyData?.data,hasResource:!!(dataObj&&('resource' in dataObj)),hasAccepted:!!(dataObj&&('accepted' in dataObj)),dataKeys:dataObj?Object.keys(dataObj).slice(0,20):null},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
 
     return new Response(
       typeof proxyData.data === 'string' ? proxyData.data : JSON.stringify(proxyData.data),
@@ -77,6 +112,14 @@ export function useX402() {
 
   const isConnected = mounted && wallet.connected;
   const address = mounted ? wallet.publicKey?.toString() : undefined;
+  const debugEnabled =
+    mounted &&
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).has('x402debug');
+  const debugRunId =
+    debugEnabled && typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('x402run') || 'run1'
+      : 'disabled';
 
   const checkAccess = useCallback(async (): Promise<AccessCheckResponse> => {
     if (!address) return { hasAccess: false };
@@ -105,6 +148,16 @@ export function useX402() {
     setError(null);
 
     try {
+      const addrShort = `${address.slice(0, 4)}...${address.slice(-4)}`;
+      let serverHost = 'unknown';
+      let rpcHost = 'unknown';
+      try { serverHost = new URL(X402_SERVER_URL).host; } catch {}
+      try { rpcHost = new URL(HELIUS_RPC).host; } catch {}
+
+      // #region agent log
+      debugEnabled && fetch(DEBUG_INGEST_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:debugRunId,hypothesisId:'D',location:'memento-app/lib/hooks/use-x402.ts:requestAccess',message:'requestAccess start',data:{accessType,addr:addrShort,serverHost,rpcHost,hasSignTx:!!wallet.signTransaction},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+
       // Import and create client - EXACTLY as per README
       const { createX402Client } = await import('@payai/x402-solana/client');
       
@@ -113,13 +166,16 @@ export function useX402() {
           address: wallet.publicKey.toString(),
           signTransaction: async (tx) => {
             if (!wallet.signTransaction) throw new Error('Wallet does not support signing');
+            // #region agent log
+            debugEnabled && fetch(DEBUG_INGEST_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:debugRunId,hypothesisId:'C',location:'memento-app/lib/hooks/use-x402.ts:signTransaction',message:'wallet.signTransaction invoked',data:{txType:(tx as any)?.constructor?.name||typeof tx},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
             return await wallet.signTransaction(tx);
           },
         },
         network: 'solana', // mainnet
         rpcUrl: HELIUS_RPC, // custom RPC to avoid rate limits
         amount: BigInt(10_000_000), // max 10 USDC safety limit
-        customFetch: createProxyFetch(), // proxy for CORS
+        customFetch: createProxyFetch({ enabled: debugEnabled, runId: debugRunId }), // proxy for CORS
       });
 
       // Make paid request - EXACTLY as per README
@@ -139,12 +195,15 @@ export function useX402() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Payment failed';
       console.error('[useX402] Error:', err);
+      // #region agent log
+      debugEnabled && fetch(DEBUG_INGEST_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'debug-session',runId:debugRunId,hypothesisId:'D',location:'memento-app/lib/hooks/use-x402.ts:requestAccess',message:'requestAccess error',data:{name:err instanceof Error?err.name:'Unknown',message:errorMessage},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       setError(errorMessage);
       return { success: false, accessGranted: false, error: errorMessage };
     } finally {
       setIsLoading(false);
     }
-  }, [isConnected, address, wallet.publicKey, wallet.signTransaction]);
+  }, [isConnected, address, wallet.publicKey, wallet.signTransaction, debugEnabled, debugRunId]);
 
   return {
     checkAccess,

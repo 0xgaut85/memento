@@ -20,6 +20,10 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT) : 4000;
 const treasuryAddress = process.env.TREASURY_WALLET_ADDRESS!;
 const serverPublicUrl = process.env.X402_PUBLIC_URL || 'https://x402.memento.money';
 const mementoAppUrl = process.env.MEMENTO_APP_URL || 'https://app.memento.money';
+// Solana RPC (use Helius to avoid public RPC rate limiting)
+const SOLANA_RPC_URL =
+  process.env.SOLANA_RPC_URL ||
+  'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
 
 // USDC Mint addresses - exactly as per x402-solana README
 const USDC_MINT_MAINNET = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
@@ -50,11 +54,18 @@ app.get('/health', (_req, res) => {
 
 // Debug config endpoint
 app.get('/debug/config', (_req, res) => {
+  let rpcHost = 'unknown';
+  try {
+    rpcHost = new URL(SOLANA_RPC_URL).host;
+  } catch {
+    rpcHost = 'invalid';
+  }
   res.json({
     network: NETWORK,
     usdcMint: USDC_MINT,
     treasury: treasuryAddress,
     facilitator: 'https://facilitator.payai.network',
+    rpcHost,
     nodeEnv: process.env.NODE_ENV,
     price: AGGREGATOR_PRICE,
   });
@@ -106,6 +117,7 @@ const x402 = new X402PaymentHandler({
   network: NETWORK as 'solana' | 'solana-devnet',
   treasuryAddress: treasuryAddress,
   facilitatorUrl: 'https://facilitator.payai.network',
+  rpcUrl: SOLANA_RPC_URL,
 });
 
 console.log('[x402] Server initialized');
@@ -180,7 +192,9 @@ app.post('/aggregator/solana', async (req, res) => {
     
     // 3. If no payment header, return 402 - EXACTLY as per README
     if (!paymentHeader) {
-      const response = x402.create402Response(paymentRequirements);
+      // README: create402Response(requirements, resourceUrl)
+      // https://github.com/PayAINetwork/x402-solana
+      const response = x402.create402Response(paymentRequirements, resourceUrl);
       return res.status(response.status).json(response.body);
     }
     
@@ -231,7 +245,13 @@ app.post('/aggregator/solana', async (req, res) => {
     }
   } catch (error) {
     console.error('[Aggregator] Error:', error);
-    res.status(500).json({ error: error instanceof Error ? error.message : 'Internal error' });
+    const debugEnabled = req.headers['x-memento-debug'] === '1';
+    const message = error instanceof Error ? error.message : 'Internal error';
+    res.status(500).json(
+      debugEnabled
+        ? { error: message, name: error instanceof Error ? error.name : 'Unknown' }
+        : { error: 'Internal server error' }
+    );
   }
 });
 
