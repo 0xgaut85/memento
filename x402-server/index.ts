@@ -164,20 +164,19 @@ app.post('/aggregator/solana', async (req, res) => {
     // 1. Extract payment header - EXACTLY as per README
     const paymentHeader = x402.extractPayment(req.headers);
     
-    // 2. Create payment requirements - EXACTLY as per README RouteConfig format
-    const paymentRequirements = await x402.createPaymentRequirements({
-      price: {
+    // 2. Create payment requirements - EXACTLY as per README
+    // https://github.com/PayAINetwork/x402-solana#routeconfig-format
+    const paymentRequirements = await x402.createPaymentRequirements(
+      {
         amount: AGGREGATOR_PRICE, // "5000000" = $5 USDC
         asset: {
-          address: USDC_MINT
-        }
-      },
-      network: NETWORK,
-      config: {
+          address: USDC_MINT,
+          decimals: 6,
+        },
         description: 'Memento Aggregator - 24hr Access',
-        resource: resourceUrl,
-      }
-    });
+      },
+      resourceUrl
+    );
     
     // 3. If no payment header, return 402 - EXACTLY as per README
     if (!paymentHeader) {
