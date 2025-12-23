@@ -35,13 +35,16 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    // CRITICAL: Ensure PAYMENT-SIGNATURE is forwarded in both cases
-    // Express normalizes headers to lowercase, but x402 expects uppercase
+    // CRITICAL: Forward payment signature header
+    // Only send ONE header (lowercase) - sending both causes Express to concatenate them!
     const paymentSigValue = headers?.['PAYMENT-SIGNATURE'] || headers?.['payment-signature'] || headers?.['Payment-Signature'];
     if (paymentSigValue) {
-      requestHeaders['PAYMENT-SIGNATURE'] = paymentSigValue;
+      // Remove any existing payment signature headers to avoid duplication
+      delete requestHeaders['PAYMENT-SIGNATURE'];
+      delete requestHeaders['Payment-Signature'];
+      // Use lowercase only - Express normalizes to lowercase anyway
       requestHeaders['payment-signature'] = paymentSigValue;
-      console.log('[Proxy] Forwarding PAYMENT-SIGNATURE:', paymentSigValue.length, 'chars');
+      console.log('[Proxy] Forwarding payment-signature:', paymentSigValue.length, 'chars');
     }
 
     // Remove problematic headers
