@@ -63,6 +63,20 @@ app.get('/health', (_req, res) => {
   });
 });
 
+// Debug endpoint to check configuration
+app.get('/debug/config', (_req, res) => {
+  res.json({
+    network: NETWORK,
+    usdcMint: USDC_MINT,
+    treasury: treasuryAddress,
+    treasuryLength: treasuryAddress?.length,
+    facilitator: facilitatorUrl,
+    rpcUrl: solanaRpcUrl.substring(0, 50) + '...',
+    nodeEnv: process.env.NODE_ENV,
+    price: AGGREGATOR_PRICE,
+  });
+});
+
 // CORS configuration for x402 headers - explicitly allow PAYMENT-SIGNATURE
 app.use((_req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
