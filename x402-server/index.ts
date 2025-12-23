@@ -157,7 +157,33 @@ async function grantAccess(userId: string, paymentId: string) {
   });
 }
 
-// --- AGGREGATOR ENDPOINT ---
+// --- AGGREGATOR ENDPOINT (GET for discovery/x402scan) ---
+// Returns 402 for discovery tools like x402scan
+app.get('/aggregator/solana', async (_req, res) => {
+  const resourceUrl = `${serverPublicUrl}/aggregator/solana`;
+  
+  try {
+    const paymentRequirements = await x402.createPaymentRequirements(
+      {
+        amount: AGGREGATOR_PRICE,
+        asset: {
+          address: USDC_MINT,
+          decimals: 6,
+        },
+        description: 'Memento Aggregator - 24hr Access',
+      },
+      resourceUrl
+    );
+    
+    const response402 = x402.create402Response(paymentRequirements, resourceUrl);
+    return res.status(response402.status).json(response402.body);
+  } catch (err) {
+    console.error('[x402] GET discovery error:', err);
+    return res.status(500).json({ error: 'Failed to generate payment requirements' });
+  }
+});
+
+// --- AGGREGATOR ENDPOINT (POST for actual payments) ---
 // EXACTLY as per https://github.com/PayAINetwork/x402-solana#server-side-express
 app.post('/aggregator/solana', async (req, res) => {
   try {
