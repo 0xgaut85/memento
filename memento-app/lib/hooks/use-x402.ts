@@ -264,6 +264,12 @@ export function useX402() {
         console.log('[x402 DEBUG] Server received headers:', resultAny._serverDebug.receivedHeaders);
         console.log('[x402 DEBUG] Server has payment sig:', resultAny._serverDebug.hasPaymentSig);
       }
+      if (resultAny._debug) {
+        console.log('[x402 DEBUG] Server config:', resultAny._debug);
+      }
+      if (resultAny.details) {
+        console.log('[x402 DEBUG] Error details from server:', resultAny.details);
+      }
 
       if (!response.ok) {
         throw new Error(result.error || 'Payment failed');

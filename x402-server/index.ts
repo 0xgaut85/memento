@@ -325,18 +325,34 @@ app.post('/aggregator/solana', async (req, res) => {
       });
     }
     
-    console.log('[x402 DEBUG] Payment header found, verifying with facilitator...');
+    console.log('[x402 DEBUG] Payment header found, length:', paymentHeader.length);
+    console.log('[x402 DEBUG] Verifying with facilitator:', facilitatorUrl);
     
     // 3. Verify payment with facilitator
-    const verifyResult = await x402Handler.verifyPayment(paymentHeader, paymentRequirements);
-    
-    console.log('[x402 DEBUG] Verification result:', { isValid: verifyResult.isValid, reason: verifyResult.invalidReason });
+    let verifyResult;
+    try {
+      verifyResult = await x402Handler.verifyPayment(paymentHeader, paymentRequirements);
+      console.log('[x402 DEBUG] Verification result:', { isValid: verifyResult.isValid, reason: verifyResult.invalidReason });
+    } catch (verifyError) {
+      console.error('[x402] Verification threw error:', verifyError);
+      return res.status(402).json({
+        error: 'Invalid payment',
+        reason: 'verification_exception',
+        details: verifyError instanceof Error ? verifyError.message : String(verifyError),
+      });
+    }
     
     if (!verifyResult.isValid) {
       console.error('[x402] Payment verification failed:', verifyResult.invalidReason);
       return res.status(402).json({
         error: 'Invalid payment',
         reason: verifyResult.invalidReason,
+        // Include more debug info
+        _debug: {
+          facilitator: facilitatorUrl,
+          network: NETWORK,
+          treasury: treasuryAddress,
+        }
       });
     }
     
