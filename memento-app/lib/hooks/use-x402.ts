@@ -138,12 +138,16 @@ export function useX402() {
     setError(null);
 
     try {
+      console.log('[x402 DEBUG] Starting payment flow', { address, accessType, serverUrl: X402_SERVER_URL });
+
       // Create the client dynamically
       const client = await createX402ClientFactory();
       
       if (!client) {
         throw new Error('Wallet not ready for payments. Please reconnect.');
       }
+
+      console.log('[x402 DEBUG] Client created, making request to server');
       
       // Make a paid request - automatically handles 402 payments
       const response = await client.fetch(`${X402_SERVER_URL}/aggregator/solana`, {
@@ -155,7 +159,15 @@ export function useX402() {
         }),
       });
 
+      console.log('[x402 DEBUG] Response received', { 
+        status: response.status, 
+        ok: response.ok,
+        statusText: response.statusText
+      });
+
       const result: PaymentResponse = await response.json();
+
+      console.log('[x402 DEBUG] Response body', result);
 
       if (!response.ok) {
         throw new Error(result.error || 'Payment failed');
@@ -163,6 +175,12 @@ export function useX402() {
 
       return result;
     } catch (err) {
+      console.error('[x402 DEBUG] Error details:', {
+        name: err instanceof Error ? err.name : 'Unknown',
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined
+      });
+
       const errorMessage = err instanceof Error ? err.message : 'Payment failed';
       console.error('[useX402] Request access error:', err);
       setError(errorMessage);
