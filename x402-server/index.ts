@@ -277,8 +277,22 @@ app.post('/aggregator/solana', async (req, res) => {
       }
     }
     
-    // 1. Extract payment header (v2 uses PAYMENT-SIGNATURE)
-    const paymentHeader = x402Handler.extractPayment(req.headers as Record<string, string | string[] | undefined>);
+    // 1. Extract payment header - manually check both v1 and v2 header names
+    // v2 uses PAYMENT-SIGNATURE, v1 uses X-PAYMENT
+    // Express lowercases all headers, so we check lowercase versions
+    let paymentHeader = x402Handler.extractPayment(req.headers as Record<string, string | string[] | undefined>);
+    
+    // If extractPayment didn't find it, try manual extraction
+    if (!paymentHeader) {
+      const manualHeader = req.headers['payment-signature'] || 
+                          req.headers['x-payment'] ||
+                          req.headers['PAYMENT-SIGNATURE'] ||
+                          req.headers['X-PAYMENT'];
+      if (manualHeader) {
+        paymentHeader = typeof manualHeader === 'string' ? manualHeader : manualHeader[0];
+        console.log('[x402 DEBUG] Manually extracted payment header, length:', paymentHeader?.length);
+      }
+    }
     
     // 2. Create payment requirements - v2 API
     // As per x402-solana README: amount is in micro-units as string
