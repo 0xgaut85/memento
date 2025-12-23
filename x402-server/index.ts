@@ -174,28 +174,46 @@ app.post('/aggregator/solana', async (req, res) => {
     }
     
     // 1. Extract payment header - EXACTLY as per README
-    const paymentHeader = x402.extractPayment(req.headers);
+    let paymentHeader: string | undefined;
+    try {
+      paymentHeader = x402.extractPayment(req.headers);
+    } catch (err) {
+      console.error('[x402] extractPayment failed:', err);
+      return res.status(500).json({ error: 'extractPayment failed', detail: String(err) });
+    }
     
     // 2. Create payment requirements - EXACTLY as per README
     // https://github.com/PayAINetwork/x402-solana#routeconfig-format
-    const paymentRequirements = await x402.createPaymentRequirements(
-      {
-        amount: AGGREGATOR_PRICE, // "5000000" = $5 USDC
-        asset: {
-          address: USDC_MINT,
-          decimals: 6,
+    let paymentRequirements: Awaited<ReturnType<typeof x402.createPaymentRequirements>>;
+    try {
+      paymentRequirements = await x402.createPaymentRequirements(
+        {
+          amount: AGGREGATOR_PRICE, // "5000000" = $5 USDC
+          asset: {
+            address: USDC_MINT,
+            decimals: 6,
+          },
+          description: 'Memento Aggregator - 24hr Access',
         },
-        description: 'Memento Aggregator - 24hr Access',
-      },
-      resourceUrl
-    );
+        resourceUrl
+      );
+    } catch (err) {
+      console.error('[x402] createPaymentRequirements failed:', err);
+      return res.status(500).json({ error: 'createPaymentRequirements failed', detail: String(err) });
+    }
     
     // 3. If no payment header, return 402 - EXACTLY as per README
     if (!paymentHeader) {
       // README: create402Response(requirements, resourceUrl)
       // https://github.com/PayAINetwork/x402-solana
-      const response = x402.create402Response(paymentRequirements, resourceUrl);
-      return res.status(response.status).json(response.body);
+      let response402: ReturnType<typeof x402.create402Response>;
+      try {
+        response402 = x402.create402Response(paymentRequirements, resourceUrl);
+      } catch (err) {
+        console.error('[x402] create402Response failed:', err);
+        return res.status(500).json({ error: 'create402Response failed', detail: String(err) });
+      }
+      return res.status(response402.status).json(response402.body);
     }
     
     // 4. Verify payment - EXACTLY as per README

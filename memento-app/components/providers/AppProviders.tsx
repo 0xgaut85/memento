@@ -23,7 +23,7 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 60 * 1000, // 1 minute
       refetchOnWindowFocus: false,
-    },
+  },
   },
 });
 
@@ -40,7 +40,7 @@ export function AppProviders({ children }: AppProvidersProps) {
 
   // Prevent hydration mismatch by not rendering wallet provider until mounted
   if (!mounted) {
-    return (
+  return (
       <QueryClientProvider client={queryClient}>
         {children}
       </QueryClientProvider>
@@ -48,10 +48,10 @@ export function AppProviders({ children }: AppProvidersProps) {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SolanaWalletProvider>
-        {children}
-      </SolanaWalletProvider>
-    </QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <SolanaWalletProvider>
+          {children}
+        </SolanaWalletProvider>
+      </QueryClientProvider>
   );
 }

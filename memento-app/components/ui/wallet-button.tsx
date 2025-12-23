@@ -74,7 +74,7 @@ function WalletButtonInner() {
   if (connected && publicKey) {
     return (
       <div className="relative group">
-        <button
+      <button
           className="px-4 py-2.5 bg-emerald-100 text-emerald-800 rounded-xl font-medium text-sm flex items-center gap-2 transition-all hover:bg-emerald-200"
           onClick={handleDisconnect}
         >
@@ -86,20 +86,20 @@ function WalletButtonInner() {
             />
           )}
           {formatAddress(publicKey.toString())}
-        </button>
+      </button>
       </div>
     );
   }
 
   // Not connected - show connect button
   return (
-    <button
+      <button
       className="px-4 py-2.5 bg-pink-100 text-pink-800 rounded-xl font-medium text-sm transition-all hover:bg-pink-200 disabled:opacity-50"
       onClick={handleConnect}
       disabled={connecting || isRetrying}
-    >
+      >
       {connecting || isRetrying ? 'Connecting...' : 'Select Wallet'}
-    </button>
+      </button>
   );
 }
 
