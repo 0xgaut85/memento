@@ -10,6 +10,9 @@ import { useWallet } from '@solana/wallet-adapter-react';
 
 const X402_SERVER_URL = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'https://x402.memento.money';
 
+// Helius RPC for mainnet - avoids rate limits on public RPC
+const HELIUS_RPC = 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
+
 // Proxy fetch to bypass CORS - as per README
 function createProxyFetch(): typeof fetch {
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
@@ -114,6 +117,7 @@ export function useX402() {
           },
         },
         network: 'solana', // mainnet
+        rpcUrl: HELIUS_RPC, // custom RPC to avoid rate limits
         amount: BigInt(10_000_000), // max 10 USDC safety limit
         customFetch: createProxyFetch(), // proxy for CORS
       });
