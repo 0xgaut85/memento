@@ -63,12 +63,13 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// CORS configuration for x402 headers
+// CORS configuration for x402 headers - explicitly allow PAYMENT-SIGNATURE
 app.use((_req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD');
-  res.setHeader('Access-Control-Allow-Headers', '*');
-  res.setHeader('Access-Control-Expose-Headers', '*');
+  // Explicitly list headers - wildcard doesn't work reliably for custom headers
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, PAYMENT-SIGNATURE, payment-signature, X-PAYMENT, x-payment');
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Type, PAYMENT-SIGNATURE, payment-signature, X-PAYMENT, x-payment, PAYMENT-RESPONSE, payment-response');
   res.setHeader('Access-Control-Max-Age', '86400');
   
   if (_req.method === 'OPTIONS') {
@@ -241,6 +242,15 @@ app.post('/aggregator/solana', async (req, res) => {
     const { userAddress, accessType = 'human' } = req.body;
     const resourceUrl = `${serverPublicUrl}/aggregator/solana`;
     
+    // Debug: Log incoming headers
+    const paymentSigHeader = req.headers['payment-signature'] || req.headers['PAYMENT-SIGNATURE'];
+    console.log('[x402 DEBUG] Incoming request headers:', {
+      hasPaymentSignature: !!paymentSigHeader,
+      paymentSignatureLength: paymentSigHeader ? String(paymentSigHeader).length : 0,
+      contentType: req.headers['content-type'],
+      allHeaders: Object.keys(req.headers)
+    });
+    
     // Validate input
     if (!userAddress) {
       return res.status(400).json({ error: 'Missing userAddress in request body' });
@@ -286,6 +296,7 @@ app.post('/aggregator/solana', async (req, res) => {
     
     // If no payment header, return 402 Payment Required
     if (!paymentHeader) {
+      console.log('[x402 DEBUG] No payment header found, returning 402');
       const response402 = x402Handler.create402Response(paymentRequirements, resourceUrl);
       return res.status(402).json({
         ...response402.body,
@@ -294,8 +305,12 @@ app.post('/aggregator/solana', async (req, res) => {
       });
     }
     
+    console.log('[x402 DEBUG] Payment header found, verifying with facilitator...');
+    
     // 3. Verify payment with facilitator
     const verifyResult = await x402Handler.verifyPayment(paymentHeader, paymentRequirements);
+    
+    console.log('[x402 DEBUG] Verification result:', { isValid: verifyResult.isValid, reason: verifyResult.invalidReason });
     
     if (!verifyResult.isValid) {
       console.error('[x402] Payment verification failed:', verifyResult.invalidReason);
