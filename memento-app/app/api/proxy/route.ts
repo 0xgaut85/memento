@@ -24,8 +24,25 @@ export async function POST(req: NextRequest) {
     const requestHeaders: Record<string, string> = {
       'Content-Type': headers?.['Content-Type'] || 'application/json',
       'User-Agent': 'x402-solana-proxy/1.0',
-      ...(headers || {}),
     };
+    
+    // Copy all headers from request
+    if (headers) {
+      for (const [key, value] of Object.entries(headers)) {
+        if (typeof value === 'string') {
+          requestHeaders[key] = value;
+        }
+      }
+    }
+    
+    // CRITICAL: Ensure PAYMENT-SIGNATURE is forwarded in both cases
+    // Express normalizes headers to lowercase, but x402 expects uppercase
+    const paymentSigValue = headers?.['PAYMENT-SIGNATURE'] || headers?.['payment-signature'] || headers?.['Payment-Signature'];
+    if (paymentSigValue) {
+      requestHeaders['PAYMENT-SIGNATURE'] = paymentSigValue;
+      requestHeaders['payment-signature'] = paymentSigValue;
+      console.log('[Proxy] Forwarding PAYMENT-SIGNATURE:', paymentSigValue.length, 'chars');
+    }
 
     // Remove problematic headers
     delete requestHeaders['host'];

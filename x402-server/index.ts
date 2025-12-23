@@ -173,11 +173,14 @@ app.post('/aggregator/solana', async (req, res) => {
       }
     }
     
-    // 1. Extract payment header - EXACTLY as per README
+    // 1. Extract payment header
     // Log ALL incoming headers to debug
-    console.log('[x402] Incoming request headers:', Object.keys(req.headers));
-    console.log('[x402] PAYMENT-SIGNATURE header:', req.headers['payment-signature'] ? `present (${String(req.headers['payment-signature']).length} chars)` : 'MISSING');
-    console.log('[x402] payment-signature (lowercase):', req.headers['payment-signature'] ? 'present' : 'missing');
+    console.log('[x402] === REQUEST RECEIVED ===');
+    console.log('[x402] All header keys:', Object.keys(req.headers));
+    
+    // Manual extraction - Express normalizes headers to lowercase
+    const rawHeader = req.headers['payment-signature'] as string | undefined;
+    console.log('[x402] Raw payment-signature header:', rawHeader ? `FOUND (${rawHeader.length} chars)` : 'NOT FOUND');
     
     let paymentHeader: string | undefined;
     try {
@@ -186,6 +189,12 @@ app.post('/aggregator/solana', async (req, res) => {
     } catch (err) {
       console.error('[x402] extractPayment failed:', err);
       return res.status(500).json({ error: 'extractPayment failed', detail: String(err) });
+    }
+    
+    // FALLBACK: If extractPayment fails but raw header exists, use it
+    if (!paymentHeader && rawHeader) {
+      console.log('[x402] Using raw header as fallback');
+      paymentHeader = rawHeader;
     }
     
     // 2. Create payment requirements - EXACTLY as per README
