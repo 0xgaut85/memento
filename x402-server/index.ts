@@ -10,8 +10,19 @@ import express from 'express';
 import path from 'path';
 import { X402PaymentHandler } from '@payai/x402-solana/server';
 import { PrismaClient } from '@prisma/client';
+import * as fs from 'fs';
 
 config();
+
+// #region agent log
+const debugLogPath = 'c:\\Users\\jum\\OneDrive\\Documents\\memento\\.cursor\\debug.log';
+const debugLog = (location: string, message: string, data: Record<string, unknown>, hypothesisId: string) => {
+  try {
+    const entry = JSON.stringify({location,message,data,timestamp:Date.now(),sessionId:'debug-session',hypothesisId}) + '\n';
+    fs.appendFileSync(debugLogPath, entry);
+  } catch {}
+};
+// #endregion
 
 const prisma = new PrismaClient();
 
@@ -244,6 +255,20 @@ app.post('/aggregator/solana', async (req, res) => {
       console.log('[x402] Decoded payload version:', payload.x402Version);
       console.log('[x402] Decoded payload resource:', payload.resource?.url);
       
+      // #region agent log
+      debugLog('x402-server:aggregator', 'Decoded payment payload', {
+        x402Version: payload.x402Version,
+        resourceUrl: payload.resource?.url,
+        payloadType: payload.payload?.type,
+        transactionLength: payload.payload?.transaction?.length,
+        signatureLength: payload.payload?.signature?.length,
+        acceptedScheme: payload.accepted?.scheme,
+        acceptedNetwork: payload.accepted?.network,
+        acceptedAmount: payload.accepted?.amount,
+        acceptedFeePayer: payload.accepted?.extra?.feePayer,
+      }, 'B,C,E');
+      // #endregion
+      
       // Use the ORIGINAL requirements from the payment (contains correct feePayer)
       if (payload.accepted) {
         originalRequirements = payload.accepted;
@@ -276,10 +301,30 @@ app.post('/aggregator/solana', async (req, res) => {
     let verified: Awaited<ReturnType<typeof x402.verifyPayment>>;
     try {
       // Use originalRequirements (from payment header) instead of paymentRequirements (newly generated)
+      // #region agent log
+      debugLog('x402-server:aggregator', 'About to call verifyPayment', {
+        paymentHeaderLength: paymentHeader.length,
+        originalRequirementsScheme: (originalRequirements as any).scheme,
+        originalRequirementsNetwork: (originalRequirements as any).network,
+        originalRequirementsAmount: (originalRequirements as any).amount,
+        originalRequirementsPayTo: (originalRequirements as any).payTo,
+        originalRequirementsAsset: (originalRequirements as any).asset,
+        originalRequirementsFeePayer: (originalRequirements as any).extra?.feePayer,
+      }, 'B,C');
+      // #endregion
       verified = await x402.verifyPayment(paymentHeader, originalRequirements);
       console.log('[x402] Verify result:', JSON.stringify(verified));
+      // #region agent log
+      debugLog('x402-server:aggregator', 'verifyPayment result', {
+        isValid: verified.isValid,
+        invalidReason: verified.invalidReason,
+      }, 'B,C');
+      // #endregion
     } catch (err) {
       console.error('[x402] verifyPayment threw:', err);
+      // #region agent log
+      debugLog('x402-server:aggregator', 'verifyPayment THREW', { error: String(err) }, 'B,C');
+      // #endregion
       return res.status(402).json({ 
         error: 'Payment verification failed', 
         reason: 'verify_exception',
@@ -289,6 +334,9 @@ app.post('/aggregator/solana', async (req, res) => {
     
     if (!verified.isValid) {
       console.error('[x402] Verification failed:', verified.invalidReason);
+      // #region agent log
+      debugLog('x402-server:aggregator', 'Verification FAILED', { invalidReason: verified.invalidReason }, 'B,C');
+      // #endregion
       return res.status(402).json({ 
         error: 'Invalid payment', 
         reason: verified.invalidReason 
