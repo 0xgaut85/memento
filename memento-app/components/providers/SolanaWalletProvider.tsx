@@ -3,14 +3,17 @@
 /**
  * SolanaWalletProvider - Native Solana Wallet Adapter
  * Using Helius RPC for reliable mainnet connection
+ * 
+ * NOTE: Phantom is excluded due to Lighthouse program injection issue
+ * See: https://github.com/coinbase/x402/issues/828
  */
 
 import { ReactNode, useMemo, useCallback } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletError } from '@solana/wallet-adapter-base';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
 import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
+import { BackpackWalletAdapter } from '@solana/wallet-adapter-backpack';
 
 // Import Solana wallet adapter styles
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -28,9 +31,10 @@ export function SolanaWalletProvider({ children }: SolanaWalletProviderProps) {
     return process.env.NEXT_PUBLIC_SOLANA_RPC_URL || HELIUS_RPC;
   }, []);
 
-  // Explicit adapters - Phantom and Solflare
+  // Explicit adapters - Solflare and Backpack (Phantom excluded due to Lighthouse issue)
+  // See: https://github.com/coinbase/x402/issues/828
   const wallets = useMemo(
-    () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
+    () => [new SolflareWalletAdapter(), new BackpackWalletAdapter()],
     []
   );
 

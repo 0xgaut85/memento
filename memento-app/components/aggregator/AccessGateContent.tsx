@@ -273,12 +273,51 @@ export function AccessGateContent({ children }: AccessGateContentProps) {
               )}
             </motion.div>
 
+            {/* Phantom Warning */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7, duration: 0.6 }}
+              className="mt-10 p-4 bg-amber-50 border border-amber-200 text-left"
+            >
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-semibold text-amber-800 mb-1">
+                    Phantom Wallet Not Supported
+                  </p>
+                  <p className="text-amber-700 mb-2">
+                    Due to Phantom&apos;s Lighthouse security update, x402 payments are currently incompatible. 
+                    Please use <span className="font-semibold">Solflare</span>, <span className="font-semibold">Backpack</span>, or <span className="font-semibold">MetaMask Snap</span> instead.
+                  </p>
+                  <div className="flex flex-wrap gap-3 text-xs">
+                    <a 
+                      href="https://github.com/coinbase/x402/issues/828" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-amber-600 hover:text-amber-800 underline"
+                    >
+                      View x402 Issue #828
+                    </a>
+                    <a 
+                      href="https://github.com/payainetwork/x402-solana/issues" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-amber-600 hover:text-amber-800 underline"
+                    >
+                      PayAI x402-solana Issues
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
             {/* Footer note */}
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8, duration: 0.6 }}
-              className="mt-12 text-sm text-foreground/40"
+              className="mt-8 text-sm text-foreground/40"
             >
               Powered by x402 protocol • Instant access after payment
             </motion.p>
