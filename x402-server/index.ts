@@ -302,6 +302,12 @@ app.post('/aggregator/solana', async (req, res) => {
         ...response402.body,
         priceUsd: AGGREGATOR_PRICE_USD,
         description: 'Access to Memento Stablecoin Yield Aggregator',
+        // Debug: show what headers were received
+        _serverDebug: {
+          receivedHeaders: Object.keys(req.headers),
+          hasPaymentSig: !!(req.headers['payment-signature'] || req.headers['PAYMENT-SIGNATURE']),
+          contentType: req.headers['content-type'],
+        }
       });
     }
     

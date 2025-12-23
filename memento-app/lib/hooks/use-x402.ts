@@ -257,6 +257,13 @@ export function useX402() {
       const result: PaymentResponse = await response.json();
 
       console.log('[x402 DEBUG] Response body', result);
+      
+      // Log server debug info if present (type assertion for debug field)
+      const resultAny = result as any;
+      if (resultAny._serverDebug) {
+        console.log('[x402 DEBUG] Server received headers:', resultAny._serverDebug.receivedHeaders);
+        console.log('[x402 DEBUG] Server has payment sig:', resultAny._serverDebug.hasPaymentSig);
+      }
 
       if (!response.ok) {
         throw new Error(result.error || 'Payment failed');
