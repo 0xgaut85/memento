@@ -2,61 +2,47 @@
 
 /**
  * SolanaWalletProvider - Native Solana Wallet Adapter
- * 
- * Modern wallets (Phantom, Solflare, etc.) register themselves as "Standard Wallets"
- * automatically via the Wallet Standard. We don't need to manually add adapters.
- * 
- * See: https://github.com/wallet-standard/wallet-standard
+ * Using Helius RPC for reliable mainnet connection
  */
 
 import { ReactNode, useMemo, useCallback } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-import { WalletError, WalletAdapterNetwork } from '@solana/wallet-adapter-base';
+import { WalletError } from '@solana/wallet-adapter-base';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import { clusterApiUrl } from '@solana/web3.js';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
 import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
 
 // Import Solana wallet adapter styles
 import '@solana/wallet-adapter-react-ui/styles.css';
 
+// Helius RPC endpoint for mainnet
+const HELIUS_RPC = 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
+
 interface SolanaWalletProviderProps {
   children: ReactNode;
 }
 
 export function SolanaWalletProvider({ children }: SolanaWalletProviderProps) {
-  // Use mainnet
-  const network = WalletAdapterNetwork.Mainnet;
-  
-  // Get endpoint - prefer custom RPC, fallback to Solana's cluster API
+  // Use Helius RPC - env var override if needed
   const endpoint = useMemo(() => {
-    const customRpc = process.env.NEXT_PUBLIC_SOLANA_RPC_MAINNET || 
-      process.env.NEXT_PUBLIC_SOLANA_RPC_URL;
-    
-    if (customRpc) {
-      return customRpc;
-    }
-    
-    // Use Solana's official cluster API URL
-    return clusterApiUrl(network);
-  }, [network]);
+    return process.env.NEXT_PUBLIC_SOLANA_RPC_URL || HELIUS_RPC;
+  }, []);
 
-  // Explicit adapters to avoid wallet-standard edge cases
+  // Explicit adapters - Phantom and Solflare
   const wallets = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
     []
   );
 
-  // Error handler - suppress expected errors, log unexpected ones
+  // Error handler
   const onError = useCallback((error: WalletError) => {
-    // These are expected errors that users might trigger
     const expectedErrors = [
       'User rejected',
       'User cancelled', 
       'User denied',
       'The user rejected',
       'Popup closed',
-      'already pending', // Connection already in progress
+      'already pending',
     ];
     
     const isExpectedError = expectedErrors.some(msg => 
@@ -64,7 +50,6 @@ export function SolanaWalletProvider({ children }: SolanaWalletProviderProps) {
     );
     
     if (!isExpectedError) {
-      // Log unexpected errors but don't crash
       console.warn('[Wallet Warning]', error.name, error.message);
     }
   }, []);
@@ -72,10 +57,7 @@ export function SolanaWalletProvider({ children }: SolanaWalletProviderProps) {
   return (
     <ConnectionProvider 
       endpoint={endpoint}
-      config={{ 
-        commitment: 'confirmed',
-        wsEndpoint: endpoint.replace('https', 'wss'),
-      }}
+      config={{ commitment: 'confirmed' }}
     >
       <WalletProvider 
         wallets={wallets} 

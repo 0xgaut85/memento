@@ -26,7 +26,8 @@ const prisma = new PrismaClient();
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 4000;
 const facilitatorUrl = process.env.FACILITATOR_URL || 'https://facilitator.payai.network';
 const treasuryAddress = process.env.TREASURY_WALLET_ADDRESS!;
-const solanaRpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+// Helius RPC for mainnet - reliable and fast
+const solanaRpcUrl = process.env.SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
 const serverPublicUrl = process.env.X402_PUBLIC_URL || 'https://x402.memento.money';
 const mementoAppUrl = process.env.MEMENTO_APP_URL || 'https://app.memento.money';
 
