@@ -49,7 +49,15 @@ function createProxyFetch(): typeof fetch {
       }
     }
 
-    console.log('[x402 DEBUG] Proxy request:', { url: targetUrl, method: init?.method, hasPaymentHeader: !!headersObj['PAYMENT-SIGNATURE'] });
+    // Check for payment header (could be any case)
+    const paymentHeader = headersObj['PAYMENT-SIGNATURE'] || headersObj['payment-signature'];
+    console.log('[x402 DEBUG] Proxy request:', { 
+      url: targetUrl, 
+      method: init?.method, 
+      hasPaymentHeader: !!paymentHeader,
+      paymentHeaderLength: paymentHeader ? paymentHeader.length : 0,
+      allHeaders: Object.keys(headersObj),
+    });
 
     // Send request through proxy server (same domain, no CORS)
     const response = await globalThis.fetch(PROXY_URL, {

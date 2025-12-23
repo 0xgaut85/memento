@@ -31,9 +31,15 @@ export async function POST(req: NextRequest) {
       for (const [key, value] of Object.entries(headers)) {
         if (typeof value === 'string') {
           requestHeaders[key] = value;
+          // Also add uppercase version for PAYMENT-SIGNATURE (HTTP headers are case-insensitive but some servers are picky)
+          if (key.toLowerCase() === 'payment-signature') {
+            requestHeaders['PAYMENT-SIGNATURE'] = value;
+          }
         }
       }
     }
+    
+    console.log('[Proxy] Request headers being sent:', Object.keys(requestHeaders));
 
     // Remove problematic headers
     delete requestHeaders['host'];
@@ -42,7 +48,15 @@ export async function POST(req: NextRequest) {
     // Resolve full URL if relative
     const fullUrl = url.startsWith('http') ? url : `${X402_SERVER_URL}${url}`;
 
-    console.log('[Proxy] Forwarding request:', { url: fullUrl, method, hasPaymentHeader: !!headers?.['PAYMENT-SIGNATURE'] });
+    // Log all headers being forwarded
+    const paymentHeader = headers?.['PAYMENT-SIGNATURE'] || headers?.['payment-signature'];
+    console.log('[Proxy] Forwarding request:', { 
+      url: fullUrl, 
+      method, 
+      hasPaymentHeader: !!paymentHeader,
+      paymentHeaderLength: paymentHeader ? paymentHeader.length : 0,
+      allHeaderKeys: headers ? Object.keys(headers) : [],
+    });
 
     // Make request to target endpoint
     const fetchOptions: RequestInit = {
