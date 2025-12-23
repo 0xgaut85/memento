@@ -174,9 +174,15 @@ app.post('/aggregator/solana', async (req, res) => {
     }
     
     // 1. Extract payment header - EXACTLY as per README
+    // Log ALL incoming headers to debug
+    console.log('[x402] Incoming request headers:', Object.keys(req.headers));
+    console.log('[x402] PAYMENT-SIGNATURE header:', req.headers['payment-signature'] ? `present (${String(req.headers['payment-signature']).length} chars)` : 'MISSING');
+    console.log('[x402] payment-signature (lowercase):', req.headers['payment-signature'] ? 'present' : 'missing');
+    
     let paymentHeader: string | undefined;
     try {
       paymentHeader = x402.extractPayment(req.headers);
+      console.log('[x402] extractPayment result:', paymentHeader ? `found (${paymentHeader.length} chars)` : 'NOT FOUND');
     } catch (err) {
       console.error('[x402] extractPayment failed:', err);
       return res.status(500).json({ error: 'extractPayment failed', detail: String(err) });
@@ -204,6 +210,7 @@ app.post('/aggregator/solana', async (req, res) => {
     
     // 3. If no payment header, return 402 - EXACTLY as per README
     if (!paymentHeader) {
+      console.log('[x402] No payment header found - returning 402');
       // README: create402Response(requirements, resourceUrl)
       // https://github.com/PayAINetwork/x402-solana
       let response402: ReturnType<typeof x402.create402Response>;
@@ -215,6 +222,8 @@ app.post('/aggregator/solana', async (req, res) => {
       }
       return res.status(response402.status).json(response402.body);
     }
+    
+    console.log('[x402] Payment header found! Proceeding to verify...');
     
     // 4. Verify payment - EXACTLY as per README
     console.log('[x402] Got payment header, length:', paymentHeader.length);

@@ -13,11 +13,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'url and method required' }, { status: 400 });
     }
 
-    // Check for payment signature header
-    const paymentSig = headers?.['PAYMENT-SIGNATURE'] || headers?.['payment-signature'];
+    // Check for payment signature header - check ALL possible cases
+    const paymentSig = headers?.['PAYMENT-SIGNATURE'] || headers?.['payment-signature'] || headers?.['Payment-Signature'];
     console.log('[Proxy] Request:', method, url);
     console.log('[Proxy] Has PAYMENT-SIGNATURE:', !!paymentSig, paymentSig ? `(${paymentSig.length} chars)` : '');
-    console.log('[Proxy] All header keys:', Object.keys(headers || {}));
+    console.log('[Proxy] All header keys:', JSON.stringify(Object.keys(headers || {})));
+    console.log('[Proxy] Full headers object:', JSON.stringify(headers || {}).substring(0, 500));
 
     // Prepare headers - preserve x402 payment headers
     const requestHeaders: Record<string, string> = {
