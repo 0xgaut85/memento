@@ -267,8 +267,14 @@ export function useX402() {
       if (resultAny._debug) {
         console.log('[x402 DEBUG] Server config:', resultAny._debug);
       }
+      if (resultAny.verifyResult) {
+        console.log('[x402 DEBUG] Full verify result:', resultAny.verifyResult);
+      }
       if (resultAny.details) {
         console.log('[x402 DEBUG] Error details from server:', resultAny.details);
+      }
+      if (resultAny.stack) {
+        console.log('[x402 DEBUG] Error stack:', resultAny.stack);
       }
 
       if (!response.ok) {

@@ -331,27 +331,34 @@ app.post('/aggregator/solana', async (req, res) => {
     // 3. Verify payment with facilitator
     let verifyResult;
     try {
+      console.log('[x402 DEBUG] Calling verifyPayment with header length:', paymentHeader.length);
+      console.log('[x402 DEBUG] Payment requirements:', JSON.stringify(paymentRequirements, null, 2));
       verifyResult = await x402Handler.verifyPayment(paymentHeader, paymentRequirements);
-      console.log('[x402 DEBUG] Verification result:', { isValid: verifyResult.isValid, reason: verifyResult.invalidReason });
-    } catch (verifyError) {
+      console.log('[x402 DEBUG] Full verification result:', JSON.stringify(verifyResult, null, 2));
+    } catch (verifyError: any) {
       console.error('[x402] Verification threw error:', verifyError);
+      console.error('[x402] Error stack:', verifyError?.stack);
       return res.status(402).json({
         error: 'Invalid payment',
         reason: 'verification_exception',
         details: verifyError instanceof Error ? verifyError.message : String(verifyError),
+        stack: verifyError?.stack?.split('\n').slice(0, 3),
       });
     }
     
     if (!verifyResult.isValid) {
       console.error('[x402] Payment verification failed:', verifyResult.invalidReason);
+      console.error('[x402] Full verify result:', JSON.stringify(verifyResult, null, 2));
       return res.status(402).json({
         error: 'Invalid payment',
         reason: verifyResult.invalidReason,
-        // Include more debug info
+        // Include full verification result for debugging
+        verifyResult: verifyResult,
         _debug: {
           facilitator: facilitatorUrl,
           network: NETWORK,
           treasury: treasuryAddress,
+          rpcUrl: solanaRpcUrl.substring(0, 50) + '...',
         }
       });
     }
