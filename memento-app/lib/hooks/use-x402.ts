@@ -16,6 +16,9 @@ import { useWallet } from '@solana/wallet-adapter-react';
 // x402 Server URL
 const X402_SERVER_URL = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'https://x402.memento.money';
 
+// Helius RPC for mainnet
+const HELIUS_RPC = 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
+
 // Access check response
 interface AccessCheckResponse {
   hasAccess: boolean;
@@ -96,6 +99,7 @@ export function useX402() {
         },
       },
       network: 'solana', // mainnet - simple format auto-converts to CAIP-2
+      rpcUrl: HELIUS_RPC, // Use Helius RPC for reliable access
       amount: BigInt(10_000_000), // max 10 USDC safety limit
     });
   }, [wallet.connected, wallet.publicKey, wallet.signTransaction]);
