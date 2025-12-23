@@ -73,7 +73,11 @@ function createProxyFetch(): typeof fetch {
 
     const proxyData = await response.json();
 
-    console.log('[x402 DEBUG] Proxy response:', { status: proxyData.status, hasData: !!proxyData.data });
+    console.log('[x402 DEBUG] Proxy response:', { 
+      status: proxyData.status, 
+      hasData: !!proxyData.data,
+      _debug: proxyData._debug  // Debug info from server
+    });
 
     // Reconstruct Response object with original status
     return new Response(

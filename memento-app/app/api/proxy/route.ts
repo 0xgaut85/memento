@@ -31,15 +31,18 @@ export async function POST(req: NextRequest) {
       for (const [key, value] of Object.entries(headers)) {
         if (typeof value === 'string') {
           requestHeaders[key] = value;
-          // Also add uppercase version for PAYMENT-SIGNATURE (HTTP headers are case-insensitive but some servers are picky)
-          if (key.toLowerCase() === 'payment-signature') {
-            requestHeaders['PAYMENT-SIGNATURE'] = value;
-          }
         }
+      }
+      
+      // Ensure PAYMENT-SIGNATURE is sent in both cases (some servers are case-sensitive)
+      const paymentSig = headers['PAYMENT-SIGNATURE'] || headers['payment-signature'];
+      if (paymentSig) {
+        requestHeaders['PAYMENT-SIGNATURE'] = paymentSig;
+        requestHeaders['payment-signature'] = paymentSig;
       }
     }
     
-    console.log('[Proxy] Request headers being sent:', Object.keys(requestHeaders));
+    console.log('[Proxy] Request headers being sent:', Object.keys(requestHeaders), 'Payment header length:', (requestHeaders['PAYMENT-SIGNATURE'] || '').length);
 
     // Remove problematic headers
     delete requestHeaders['host'];
@@ -98,6 +101,12 @@ export async function POST(req: NextRequest) {
       headers: responseHeaders,
       data: responseData,
       contentType,
+      // Debug info
+      _debug: {
+        forwardedHeaderKeys: Object.keys(requestHeaders),
+        hadPaymentHeader: !!requestHeaders['PAYMENT-SIGNATURE'] || !!requestHeaders['payment-signature'],
+        paymentHeaderLength: (requestHeaders['PAYMENT-SIGNATURE'] || requestHeaders['payment-signature'] || '').length,
+      }
     }, { status: 200 });
 
   } catch (error: unknown) {
