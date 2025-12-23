@@ -54,16 +54,24 @@ function createProxyFetch(): typeof fetch {
 
       const proxyData = await proxyResponse.json();
       
-      console.log(`[customFetch #${callCount}] Proxy returned status: ${proxyData.status}`);
+      // CRITICAL: Ensure status is a NUMBER, not string
+      // The x402 client uses strict equality: response.status !== 402
+      const statusNum = typeof proxyData.status === 'number' ? proxyData.status : parseInt(String(proxyData.status), 10);
+      
+      console.log(`[customFetch #${callCount}] Proxy returned status: ${statusNum} (type: ${typeof statusNum})`);
 
-      return new Response(
+      const response = new Response(
         typeof proxyData.data === 'string' ? proxyData.data : JSON.stringify(proxyData.data),
         {
-          status: proxyData.status,
+          status: statusNum,
           statusText: proxyData.statusText || '',
           headers: new Headers(proxyData.headers || {})
         }
       );
+      
+      console.log(`[customFetch #${callCount}] Response.status: ${response.status} (type: ${typeof response.status})`);
+      
+      return response;
     } catch (err) {
       console.error(`[customFetch #${callCount}] Error:`, err);
       throw err;
@@ -132,23 +140,28 @@ export function useX402() {
       
       console.log('[x402] Creating x402 client...');
       
-      // EXACTLY as per README example - use address string
-      const client = createX402Client({
-        wallet: {
-          address: wallet.publicKey.toString(),
-          signTransaction: async (tx) => {
-            console.log('[x402] >>> signTransaction called <<<');
-            if (!wallet.signTransaction) throw new Error('Wallet does not support signing');
-            try {
-              const signed = await wallet.signTransaction(tx);
-              console.log('[x402] >>> Transaction signed! <<<');
-              return signed;
-            } catch (signErr) {
-              console.error('[x402] signTransaction error:', signErr);
-              throw signErr;
-            }
-          },
+      // Pass wallet with both publicKey and address for compatibility
+      const walletAdapter = {
+        publicKey: wallet.publicKey,
+        address: wallet.publicKey.toString(),
+        signTransaction: async (tx: any) => {
+          console.log('[x402] >>> signTransaction called <<<');
+          if (!wallet.signTransaction) throw new Error('Wallet does not support signing');
+          try {
+            const signed = await wallet.signTransaction(tx);
+            console.log('[x402] >>> Transaction signed! <<<');
+            return signed;
+          } catch (signErr) {
+            console.error('[x402] signTransaction error:', signErr);
+            throw signErr;
+          }
         },
+      };
+      
+      console.log('[x402] Creating client with wallet:', walletAdapter.address);
+      
+      const client = createX402Client({
+        wallet: walletAdapter,
         network: 'solana',
         rpcUrl: HELIUS_RPC,
         amount: BigInt(10_000_000),
