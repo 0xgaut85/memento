@@ -28,7 +28,9 @@ const PROXY_URL = '/api/proxy';
  * As per x402-solana README
  */
 function createProxyFetch(): typeof fetch {
+  console.log('[x402 DEBUG] Creating proxy fetch function');
   const proxyFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    console.log('[x402 DEBUG] PROXY FETCH CALLED!', { input: input.toString().substring(0, 50) });
     const targetUrl = typeof input === 'string' ? input : input.toString();
     
     // Convert Headers to plain object
@@ -148,10 +150,14 @@ export function useX402() {
 
     const { createX402Client } = await import('@payai/x402-solana/client');
     console.log('[x402 DEBUG] Creating client with wallet:', wallet.publicKey.toString());
-    return createX402Client({
+    
+    const proxyFetch = createProxyFetch();
+    console.log('[x402 DEBUG] Proxy fetch created, type:', typeof proxyFetch);
+    
+    const clientConfig = {
       wallet: {
         address: wallet.publicKey.toString(),
-        signTransaction: async (tx) => {
+        signTransaction: async (tx: any) => {
           console.log('[x402 DEBUG] Wallet signTransaction called');
           if (!wallet.signTransaction) {
             throw new Error('Wallet does not support signing');
@@ -161,12 +167,16 @@ export function useX402() {
           return signed;
         },
       },
-      network: 'solana', // mainnet - simple format auto-converts to CAIP-2
-      rpcUrl: HELIUS_RPC, // Use Helius RPC for reliable access
-      amount: BigInt(10_000_000), // max 10 USDC safety limit
-      verbose: true, // Enable verbose logging
-      customFetch: createProxyFetch(), // Use proxy to bypass CORS
-    });
+      network: 'solana' as const, // mainnet
+      rpcUrl: HELIUS_RPC,
+      amount: BigInt(10_000_000),
+      verbose: true,
+      customFetch: proxyFetch,
+    };
+    
+    console.log('[x402 DEBUG] Client config keys:', Object.keys(clientConfig));
+    
+    return createX402Client(clientConfig);
   }, [wallet.connected, wallet.publicKey, wallet.signTransaction]);
 
   // Check if user has active access
