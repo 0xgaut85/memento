@@ -294,8 +294,8 @@ app.post('/aggregator/solana', async (req, res) => {
       }
     }
     
-    // 2. Create payment requirements - v2 API
-    // As per x402-solana README: amount is in micro-units as string
+    // 2. Create payment requirements - exactly as per x402-solana GitHub README
+    // https://github.com/PayAINetwork/x402-solana#server-side-express
     const paymentRequirements = await x402Handler.createPaymentRequirements(
       {
         amount: AGGREGATOR_PRICE, // $5 USDC = '5000000' micro-units
@@ -304,9 +304,13 @@ app.post('/aggregator/solana', async (req, res) => {
           decimals: 6,
         },
         description: 'Memento Aggregator - 24hr Premium Access',
+        mimeType: 'application/json',
+        maxTimeoutSeconds: 300,
       },
       resourceUrl
     );
+    
+    console.log('[x402 DEBUG] Created payment requirements for resource:', resourceUrl);
     
     // If no payment header, return 402 Payment Required
     if (!paymentHeader) {
@@ -329,39 +333,53 @@ app.post('/aggregator/solana', async (req, res) => {
     console.log('[x402 DEBUG] Verifying with facilitator:', facilitatorUrl);
     
     // 3. Verify payment with facilitator
-    let verifyResult;
+    // As per x402-solana README: https://github.com/PayAINetwork/x402-solana
+    let verifyResult: any;
     try {
-      console.log('[x402 DEBUG] Calling verifyPayment with header length:', paymentHeader.length);
-      console.log('[x402 DEBUG] Payment requirements:', JSON.stringify(paymentRequirements, null, 2));
+      console.log('[x402 DEBUG] Calling verifyPayment...');
+      console.log('[x402 DEBUG] Payment header length:', paymentHeader.length);
+      console.log('[x402 DEBUG] Facilitator URL:', facilitatorUrl);
+      
       verifyResult = await x402Handler.verifyPayment(paymentHeader, paymentRequirements);
-      console.log('[x402 DEBUG] Full verification result:', JSON.stringify(verifyResult, null, 2));
+      
+      console.log('[x402 DEBUG] Verification returned:', typeof verifyResult, verifyResult);
+      
+      // Handle both boolean and object return types (API might vary)
+      const isValid = typeof verifyResult === 'boolean' ? verifyResult : verifyResult?.isValid;
+      const invalidReason = typeof verifyResult === 'object' ? verifyResult?.invalidReason : 'unknown';
+      
+      if (!isValid) {
+        console.error('[x402] Payment verification failed:', invalidReason);
+        return res.status(402).json({
+          error: 'Invalid payment',
+          reason: invalidReason || 'verification_failed',
+          verifyResult: verifyResult,
+          _debug: {
+            facilitator: facilitatorUrl,
+            network: NETWORK,
+            treasury: treasuryAddress,
+          }
+        });
+      }
     } catch (verifyError: any) {
-      console.error('[x402] Verification threw error:', verifyError);
-      console.error('[x402] Error stack:', verifyError?.stack);
+      console.error('[x402] Verification threw error:', verifyError?.message || verifyError);
+      console.error('[x402] Error details:', {
+        name: verifyError?.name,
+        message: verifyError?.message,
+        response: verifyError?.response?.data,
+        status: verifyError?.response?.status,
+      });
       return res.status(402).json({
         error: 'Invalid payment',
         reason: 'verification_exception',
-        details: verifyError instanceof Error ? verifyError.message : String(verifyError),
-        stack: verifyError?.stack?.split('\n').slice(0, 3),
+        details: verifyError?.message || String(verifyError),
+        responseData: verifyError?.response?.data,
+        responseStatus: verifyError?.response?.status,
       });
     }
     
-    if (!verifyResult.isValid) {
-      console.error('[x402] Payment verification failed:', verifyResult.invalidReason);
-      console.error('[x402] Full verify result:', JSON.stringify(verifyResult, null, 2));
-      return res.status(402).json({
-        error: 'Invalid payment',
-        reason: verifyResult.invalidReason,
-        // Include full verification result for debugging
-        verifyResult: verifyResult,
-        _debug: {
-          facilitator: facilitatorUrl,
-          network: NETWORK,
-          treasury: treasuryAddress,
-          rpcUrl: solanaRpcUrl.substring(0, 50) + '...',
-        }
-      });
-    }
+    // Verification passed - continue with business logic
+    console.log('[x402] Payment verification successful!');
     
     // 4. Process business logic (grant access)
     const user = await getOrCreateUser(userAddress);
