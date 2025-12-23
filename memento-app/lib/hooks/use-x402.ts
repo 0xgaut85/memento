@@ -179,15 +179,32 @@ export function useX402() {
       });
 
       // Make paid request - EXACTLY as per README
-      const response = await client.fetch(`${X402_SERVER_URL}/aggregator/solana`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userAddress: address, accessType }),
-      });
+      console.log('[x402] Making paid request to:', `${X402_SERVER_URL}/aggregator/solana`);
+      
+      let response: Response;
+      try {
+        response = await client.fetch(`${X402_SERVER_URL}/aggregator/solana`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userAddress: address, accessType }),
+        });
+        console.log('[x402] Response status:', response.status);
+      } catch (fetchErr) {
+        console.error('[x402] client.fetch threw:', fetchErr);
+        throw fetchErr;
+      }
 
-      const result = await response.json();
+      let result: any;
+      try {
+        result = await response.json();
+        console.log('[x402] Response body:', JSON.stringify(result).substring(0, 500));
+      } catch (jsonErr) {
+        console.error('[x402] Failed to parse response JSON:', jsonErr);
+        throw new Error('Invalid response from server');
+      }
 
       if (!response.ok) {
+        console.error('[x402] Response not OK:', response.status, result);
         throw new Error(result.error || result.reason || 'Payment failed');
       }
 

@@ -13,6 +13,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'url and method required' }, { status: 400 });
     }
 
+    // Check for payment signature header
+    const paymentSig = headers?.['PAYMENT-SIGNATURE'] || headers?.['payment-signature'];
+    console.log('[Proxy] Request:', method, url);
+    console.log('[Proxy] Has PAYMENT-SIGNATURE:', !!paymentSig, paymentSig ? `(${paymentSig.length} chars)` : '');
+    console.log('[Proxy] All header keys:', Object.keys(headers || {}));
+
     // Prepare headers - preserve x402 payment headers
     const requestHeaders: Record<string, string> = {
       'Content-Type': headers?.['Content-Type'] || 'application/json',
@@ -34,7 +40,9 @@ export async function POST(req: NextRequest) {
       fetchOptions.body = typeof body === 'string' ? body : JSON.stringify(body);
     }
 
+    console.log('[Proxy] Sending to:', url);
     const response = await fetch(url, fetchOptions);
+    console.log('[Proxy] Response status:', response.status);
 
     // Parse response
     const contentType = response.headers.get('content-type') || '';
@@ -42,8 +50,10 @@ export async function POST(req: NextRequest) {
 
     if (contentType.includes('application/json')) {
       responseData = await response.json();
+      console.log('[Proxy] Response data:', JSON.stringify(responseData).substring(0, 300));
     } else {
       responseData = await response.text();
+      console.log('[Proxy] Response text:', String(responseData).substring(0, 300));
     }
 
     // Prepare response headers
