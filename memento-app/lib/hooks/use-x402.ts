@@ -88,19 +88,24 @@ export function useX402() {
     }
 
     const { createX402Client } = await import('@payai/x402-solana/client');
+    console.log('[x402 DEBUG] Creating client with wallet:', wallet.publicKey.toString());
     return createX402Client({
       wallet: {
         address: wallet.publicKey.toString(),
         signTransaction: async (tx) => {
+          console.log('[x402 DEBUG] Wallet signTransaction called');
           if (!wallet.signTransaction) {
             throw new Error('Wallet does not support signing');
           }
-          return await wallet.signTransaction(tx);
+          const signed = await wallet.signTransaction(tx);
+          console.log('[x402 DEBUG] Transaction signed successfully');
+          return signed;
         },
       },
       network: 'solana', // mainnet - simple format auto-converts to CAIP-2
       rpcUrl: HELIUS_RPC, // Use Helius RPC for reliable access
       amount: BigInt(10_000_000), // max 10 USDC safety limit
+      verbose: true, // Enable verbose logging
     });
   }, [wallet.connected, wallet.publicKey, wallet.signTransaction]);
 
@@ -149,7 +154,18 @@ export function useX402() {
 
       console.log('[x402 DEBUG] Client created, making request to server');
       
-      // Make a paid request - automatically handles 402 payments
+      // First, let's see what the 402 response looks like by making a direct fetch
+      console.log('[x402 DEBUG] Pre-check: fetching payment requirements...');
+      const preCheck = await fetch(`${X402_SERVER_URL}/aggregator/solana`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userAddress: address, accessType }),
+      });
+      const preCheckBody = await preCheck.json();
+      console.log('[x402 DEBUG] Pre-check response:', { status: preCheck.status, body: preCheckBody });
+      
+      // Now make the paid request through x402 client
+      console.log('[x402 DEBUG] Now making paid request through x402 client...');
       const response = await client.fetch(`${X402_SERVER_URL}/aggregator/solana`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
