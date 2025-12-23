@@ -19,6 +19,65 @@ const X402_SERVER_URL = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'https://x402
 // Helius RPC for mainnet
 const HELIUS_RPC = 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
 
+// Proxy URL for CORS bypass (same domain as frontend)
+const PROXY_URL = '/api/proxy';
+
+/**
+ * Create a custom fetch function that routes requests through our proxy
+ * This bypasses CORS issues with custom headers like PAYMENT-SIGNATURE
+ * As per x402-solana README
+ */
+function createProxyFetch(): typeof fetch {
+  const proxyFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const targetUrl = typeof input === 'string' ? input : input.toString();
+    
+    // Convert Headers to plain object
+    const headersObj: Record<string, string> = {};
+    if (init?.headers) {
+      if (init.headers instanceof Headers) {
+        init.headers.forEach((value, key) => {
+          headersObj[key] = value;
+        });
+      } else if (Array.isArray(init.headers)) {
+        init.headers.forEach(([key, value]) => {
+          headersObj[key] = value;
+        });
+      } else {
+        Object.assign(headersObj, init.headers);
+      }
+    }
+
+    console.log('[x402 DEBUG] Proxy request:', { url: targetUrl, method: init?.method, hasPaymentHeader: !!headersObj['PAYMENT-SIGNATURE'] });
+
+    // Send request through proxy server (same domain, no CORS)
+    const response = await globalThis.fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: targetUrl,
+        method: init?.method || 'GET',
+        headers: headersObj,
+        body: init?.body
+      })
+    });
+
+    const proxyData = await response.json();
+
+    console.log('[x402 DEBUG] Proxy response:', { status: proxyData.status, hasData: !!proxyData.data });
+
+    // Reconstruct Response object with original status
+    return new Response(
+      typeof proxyData.data === 'string' ? proxyData.data : JSON.stringify(proxyData.data),
+      {
+        status: proxyData.status,
+        statusText: proxyData.statusText || '',
+        headers: new Headers(proxyData.headers || {})
+      }
+    );
+  };
+  return proxyFetch as typeof fetch;
+}
+
 // Access check response
 interface AccessCheckResponse {
   hasAccess: boolean;
@@ -106,6 +165,7 @@ export function useX402() {
       rpcUrl: HELIUS_RPC, // Use Helius RPC for reliable access
       amount: BigInt(10_000_000), // max 10 USDC safety limit
       verbose: true, // Enable verbose logging
+      customFetch: createProxyFetch(), // Use proxy to bypass CORS
     });
   }, [wallet.connected, wallet.publicKey, wallet.signTransaction]);
 
@@ -152,20 +212,9 @@ export function useX402() {
         throw new Error('Wallet not ready for payments. Please reconnect.');
       }
 
-      console.log('[x402 DEBUG] Client created, making request to server');
+      console.log('[x402 DEBUG] Client created with proxy, making paid request...');
       
-      // First, let's see what the 402 response looks like by making a direct fetch
-      console.log('[x402 DEBUG] Pre-check: fetching payment requirements...');
-      const preCheck = await fetch(`${X402_SERVER_URL}/aggregator/solana`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userAddress: address, accessType }),
-      });
-      const preCheckBody = await preCheck.json();
-      console.log('[x402 DEBUG] Pre-check response:', { status: preCheck.status, body: preCheckBody });
-      
-      // Now make the paid request through x402 client
-      console.log('[x402 DEBUG] Now making paid request through x402 client...');
+      // Make a paid request through x402 client with proxy (bypasses CORS)
       const response = await client.fetch(`${X402_SERVER_URL}/aggregator/solana`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
