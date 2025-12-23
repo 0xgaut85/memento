@@ -158,25 +158,34 @@ async function grantAccess(userId: string, paymentId: string) {
 }
 
 // --- AGGREGATOR ENDPOINT (GET for discovery/x402scan) ---
-// Returns 402 for discovery tools like x402scan
+// Returns 402 with x402scan-compatible format (v1-style fields for backwards compatibility)
 app.get('/aggregator/solana', async (_req, res) => {
   const resourceUrl = `${serverPublicUrl}/aggregator/solana`;
   
   try {
-    const paymentRequirements = await x402.createPaymentRequirements(
-      {
+    // x402scan expects v1-style fields, so we provide both v1 and v2 fields
+    // This allows x402scan to track the endpoint while maintaining v2 compatibility
+    const x402scanCompatibleResponse = {
+      x402Version: 1, // x402scan expects version 1
+      error: 'Payment required',
+      accepts: [{
+        scheme: 'exact',
+        network: 'solana', // x402scan might not support CAIP-2 format
+        // v1 field (for x402scan)
+        maxAmountRequired: AGGREGATOR_PRICE,
+        // v2 field (for actual payments)
         amount: AGGREGATOR_PRICE,
-        asset: {
-          address: USDC_MINT,
-          decimals: 6,
-        },
+        payTo: treasuryAddress,
+        maxTimeoutSeconds: 300,
+        asset: USDC_MINT,
+        // x402scan requires these at root level of accepts
+        resource: resourceUrl,
         description: 'Memento Aggregator - 24hr Access',
-      },
-      resourceUrl
-    );
+        mimeType: 'application/json',
+      }],
+    };
     
-    const response402 = x402.create402Response(paymentRequirements, resourceUrl);
-    return res.status(response402.status).json(response402.body);
+    return res.status(402).json(x402scanCompatibleResponse);
   } catch (err) {
     console.error('[x402] GET discovery error:', err);
     return res.status(500).json({ error: 'Failed to generate payment requirements' });
