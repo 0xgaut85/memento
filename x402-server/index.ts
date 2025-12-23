@@ -234,13 +234,49 @@ app.post('/aggregator/solana', async (req, res) => {
     
     console.log('[x402] Payment header found! Proceeding to verify...');
     
-    // 4. Verify payment - EXACTLY as per README
+    // CRITICAL FIX: Extract the ORIGINAL payment requirements from the payment header
+    // The client sends the requirements that were used to build the transaction in payload.accepted
+    // We MUST use those, not newly generated ones (which might have different feePayer)
+    let originalRequirements = paymentRequirements; // fallback
+    try {
+      const payloadJson = Buffer.from(paymentHeader, 'base64').toString('utf8');
+      const payload = JSON.parse(payloadJson);
+      console.log('[x402] Decoded payload version:', payload.x402Version);
+      console.log('[x402] Decoded payload resource:', payload.resource?.url);
+      
+      // Use the ORIGINAL requirements from the payment (contains correct feePayer)
+      if (payload.accepted) {
+        originalRequirements = payload.accepted;
+        console.log('[x402] Using ORIGINAL requirements from payment header');
+        console.log('[x402] Original feePayer:', originalRequirements.extra?.feePayer);
+        console.log('[x402] New feePayer would be:', paymentRequirements.extra?.feePayer);
+        if (originalRequirements.extra?.feePayer !== paymentRequirements.extra?.feePayer) {
+          console.log('[x402] ⚠️ feePayer MISMATCH detected - using original!');
+        }
+        
+        // SECURITY: Verify payTo matches our treasury
+        if (originalRequirements.payTo !== treasuryAddress) {
+          console.error('[x402] ❌ SECURITY: payTo mismatch! Expected:', treasuryAddress, 'Got:', originalRequirements.payTo);
+          return res.status(402).json({ error: 'Invalid payment recipient' });
+        }
+        
+        // SECURITY: Verify amount is correct
+        if (originalRequirements.amount !== AGGREGATOR_PRICE) {
+          console.error('[x402] ❌ SECURITY: amount mismatch! Expected:', AGGREGATOR_PRICE, 'Got:', originalRequirements.amount);
+          return res.status(402).json({ error: 'Invalid payment amount' });
+        }
+      }
+    } catch (decodeErr) {
+      console.error('[x402] Failed to decode payment header, using regenerated requirements:', decodeErr);
+    }
+    
+    // 4. Verify payment using ORIGINAL requirements
     console.log('[x402] Got payment header, length:', paymentHeader.length);
-    console.log('[x402] Payment header preview:', paymentHeader.substring(0, 100) + '...');
     
     let verified: Awaited<ReturnType<typeof x402.verifyPayment>>;
     try {
-      verified = await x402.verifyPayment(paymentHeader, paymentRequirements);
+      // Use originalRequirements (from payment header) instead of paymentRequirements (newly generated)
+      verified = await x402.verifyPayment(paymentHeader, originalRequirements);
       console.log('[x402] Verify result:', JSON.stringify(verified));
     } catch (err) {
       console.error('[x402] verifyPayment threw:', err);
@@ -275,9 +311,9 @@ app.post('/aggregator/solana', async (req, res) => {
       },
     });
     
-    // 6. Settle payment - EXACTLY as per README
+    // 6. Settle payment using ORIGINAL requirements
     try {
-      const settlement = await x402.settlePayment(paymentHeader, paymentRequirements);
+      const settlement = await x402.settlePayment(paymentHeader, originalRequirements);
       console.log('[x402] Settlement result:', JSON.stringify(settlement));
       if (!settlement.success) {
         console.error('[x402] Settlement failed:', settlement.errorReason);
