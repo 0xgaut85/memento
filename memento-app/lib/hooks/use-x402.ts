@@ -73,11 +73,13 @@ function createProxyFetch(): typeof fetch {
 
     const proxyData = await response.json();
 
-    console.log('[x402 DEBUG] Proxy response:', { 
-      status: proxyData.status, 
-      hasData: !!proxyData.data,
-      _debug: proxyData._debug  // Debug info from server
-    });
+    // Log debug info from proxy
+    if (proxyData._debug) {
+      console.log('[x402 DEBUG] Proxy forwarded headers:', proxyData._debug.forwardedHeaderKeys);
+      console.log('[x402 DEBUG] Proxy had payment header:', proxyData._debug.hadPaymentHeader);
+      console.log('[x402 DEBUG] Proxy payment header length:', proxyData._debug.paymentHeaderLength);
+    }
+    console.log('[x402 DEBUG] Proxy response status:', proxyData.status);
 
     // Reconstruct Response object with original status
     return new Response(
