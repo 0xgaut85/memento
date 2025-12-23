@@ -2,7 +2,7 @@
 nixPkgs = ["nodejs_20"]
 
 [phases.install]
-cmds = ["npm install --include=dev"]
+cmds = ["npm_config_production=false npm install"]
 cacheDirectories = ["node_modules", ".next/cache"]
 
 [phases.build]
