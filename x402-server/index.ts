@@ -146,25 +146,29 @@ async function grantAccess(userId: string, paymentId: string) {
   });
 }
 
+// v1 RouteConfig for payment requirements
+const routeConfig = {
+  price: {
+    amount: AGGREGATOR_PRICE,
+    asset: {
+      address: USDC_MINT,
+      decimals: 6,
+    },
+  },
+  network: NETWORK as 'solana' | 'solana-devnet',
+  config: {
+    description: 'Memento Aggregator - 24hr Access',
+  },
+};
+
 // --- AGGREGATOR ENDPOINT (GET for discovery) ---
 // Returns 402 for discovery purposes (v1 format)
 app.get('/aggregator/solana', async (_req, res) => {
   const resourceUrl = `${serverPublicUrl}/aggregator/solana`;
   
   try {
-    const paymentRequirements = await x402.createPaymentRequirements(
-      {
-        maxAmountRequired: AGGREGATOR_PRICE,
-        asset: {
-          address: USDC_MINT,
-          decimals: 6,
-        },
-        description: 'Memento Aggregator - 24hr Access',
-      },
-      resourceUrl
-    );
-    
-    const response402 = x402.create402Response(paymentRequirements, resourceUrl);
+    const paymentRequirements = await x402.createPaymentRequirements(routeConfig, resourceUrl);
+    const response402 = x402.create402Response(paymentRequirements);
     return res.status(response402.status).json(response402.body);
   } catch (err) {
     console.error('[x402] GET discovery error:', err);
@@ -222,20 +226,10 @@ app.post('/aggregator/solana', async (req, res) => {
       paymentHeader = rawHeader;
     }
     
-    // 2. Create payment requirements - v1 uses maxAmountRequired
+    // 2. Create payment requirements - v1 RouteConfig format
     let paymentRequirements: Awaited<ReturnType<typeof x402.createPaymentRequirements>>;
     try {
-      paymentRequirements = await x402.createPaymentRequirements(
-        {
-          maxAmountRequired: AGGREGATOR_PRICE, // "5000000" = $5 USDC
-          asset: {
-            address: USDC_MINT,
-            decimals: 6,
-          },
-          description: 'Memento Aggregator - 24hr Access',
-        },
-        resourceUrl
-      );
+      paymentRequirements = await x402.createPaymentRequirements(routeConfig, resourceUrl);
     } catch (err) {
       console.error('[x402] createPaymentRequirements failed:', err);
       return res.status(500).json({ error: 'createPaymentRequirements failed', detail: String(err) });
@@ -248,7 +242,7 @@ app.post('/aggregator/solana', async (req, res) => {
       // https://github.com/PayAINetwork/x402-solana
       let response402: ReturnType<typeof x402.create402Response>;
       try {
-        response402 = x402.create402Response(paymentRequirements, resourceUrl);
+        response402 = x402.create402Response(paymentRequirements);
       } catch (err) {
         console.error('[x402] create402Response failed:', err);
         return res.status(500).json({ error: 'create402Response failed', detail: String(err) });
