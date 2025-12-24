@@ -113,19 +113,19 @@ app.get('/', (_req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Memento x402 - Stablecoin Yield Aggregator</title>
+  <title>Memento.money</title>
   <meta name="description" content="A new global privacy focused standard for earning yield on stablecoins, on-chain and beyond.">
   
   <!-- Open Graph / Social Media -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://x402.memento.money/">
-  <meta property="og:title" content="Memento x402 - Stablecoin Yield Aggregator">
+  <meta property="og:title" content="Memento.money">
   <meta property="og:description" content="A new global privacy focused standard for earning yield on stablecoins, on-chain and beyond.">
   <meta property="og:image" content="https://x402.memento.money/public/favicon.png">
   
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Memento x402 - Stablecoin Yield Aggregator">
+  <meta name="twitter:title" content="Memento.money">
   <meta name="twitter:description" content="A new global privacy focused standard for earning yield on stablecoins, on-chain and beyond.">
   <meta name="twitter:image" content="https://x402.memento.money/public/favicon.png">
   
