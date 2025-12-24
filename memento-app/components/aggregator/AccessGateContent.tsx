@@ -222,9 +222,10 @@ export function AccessGateContent({ children }: AccessGateContentProps) {
                       height: auto !important;
                       border-radius: 0 !important;
                       transition: all 0.3s ease !important;
+                      font-family: inherit !important;
                     }
                     .connect-wallet-cta .wallet-adapter-button:hover {
-                      background-color: #ec4899 !important;
+                      background-color: var(--primary) !important;
                     }
                     .connect-wallet-cta .wallet-adapter-button-start-icon {
                       display: none !important;

@@ -14,9 +14,7 @@ import { WalletError } from '@solana/wallet-adapter-base';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
 import { BackpackWalletAdapter } from '@solana/wallet-adapter-backpack';
-
-// Import Solana wallet adapter styles
-import '@solana/wallet-adapter-react-ui/styles.css';
+import { CustomWalletModal } from '@/components/ui/custom-wallet-modal';
 
 // Helius RPC endpoint for mainnet
 const HELIUS_RPC = 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f';
@@ -69,6 +67,14 @@ export function SolanaWalletProvider({ children }: SolanaWalletProviderProps) {
         onError={onError}
       >
         <WalletModalProvider>
+          {/* Custom premium wallet modal */}
+          <CustomWalletModal />
+          {/* Hide default modal with CSS */}
+          <style jsx global>{`
+            .wallet-adapter-modal-wrapper {
+              display: none !important;
+            }
+          `}</style>
           {children}
         </WalletModalProvider>
       </WalletProvider>
