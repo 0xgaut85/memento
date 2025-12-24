@@ -2,27 +2,16 @@
  * Memento x402 Express Server
  * Payment gateway for Aggregator access
  * 
- * Exactly as per x402-solana README: https://github.com/PayAINetwork/x402-solana
+ * Using x402-solana v0.1.5 (stable v1 protocol)
  */
 
 import { config } from 'dotenv';
 import express from 'express';
 import path from 'path';
-import { X402PaymentHandler } from '@payai/x402-solana/server';
+import { X402PaymentHandler } from 'x402-solana/server';
 import { PrismaClient } from '@prisma/client';
-import * as fs from 'fs';
 
 config();
-
-// #region agent log
-const debugLogPath = 'c:\\Users\\jum\\OneDrive\\Documents\\memento\\.cursor\\debug.log';
-const debugLog = (location: string, message: string, data: Record<string, unknown>, hypothesisId: string) => {
-  try {
-    const entry = JSON.stringify({location,message,data,timestamp:Date.now(),sessionId:'debug-session',hypothesisId}) + '\n';
-    fs.appendFileSync(debugLogPath, entry);
-  } catch {}
-};
-// #endregion
 
 const prisma = new PrismaClient();
 
@@ -82,12 +71,12 @@ app.get('/debug/config', (_req, res) => {
   });
 });
 
-// CORS - allow all for x402 headers
+// CORS - allow all for x402 headers (v1 uses X-PAYMENT)
 app.use((_req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, PAYMENT-SIGNATURE, payment-signature');
-  res.setHeader('Access-Control-Expose-Headers', 'PAYMENT-SIGNATURE, payment-signature');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-PAYMENT, x-payment');
+  res.setHeader('Access-Control-Expose-Headers', 'X-PAYMENT, x-payment');
   if (_req.method === 'OPTIONS') return res.status(204).end();
   next();
 });
@@ -99,16 +88,16 @@ app.use('/public', express.static(path.join(__dirname, 'public')));
 app.get('/favicon.ico', (_req, res) => res.redirect('/public/favicon.png'));
 app.get('/favicon.png', (_req, res) => res.redirect('/public/favicon.png'));
 
-// x402 Discovery endpoint
+// x402 Discovery endpoint (v1 format)
 app.get('/.well-known/x402', (_req, res) => {
   res.json({
-    version: '2.0',
+    version: '1.0',
     name: 'Memento Stablecoin Yield Aggregator',
     description: 'AI-curated stablecoin yield opportunities. Pay $5 USDC for 24hr access.',
     endpoints: [{
       path: '/aggregator/solana',
       method: 'POST',
-      price: { amount: AGGREGATOR_PRICE, currency: 'USDC', decimals: 6, usd: AGGREGATOR_PRICE_USD },
+      price: { maxAmountRequired: AGGREGATOR_PRICE, currency: 'USDC', decimals: 6, usd: AGGREGATOR_PRICE_USD },
       network: NETWORK,
     }],
     treasury: treasuryAddress,
@@ -158,14 +147,14 @@ async function grantAccess(userId: string, paymentId: string) {
 }
 
 // --- AGGREGATOR ENDPOINT (GET for discovery) ---
-// Returns 402 for discovery purposes (standard v2 format)
+// Returns 402 for discovery purposes (v1 format)
 app.get('/aggregator/solana', async (_req, res) => {
   const resourceUrl = `${serverPublicUrl}/aggregator/solana`;
   
   try {
     const paymentRequirements = await x402.createPaymentRequirements(
       {
-        amount: AGGREGATOR_PRICE,
+        maxAmountRequired: AGGREGATOR_PRICE,
         asset: {
           address: USDC_MINT,
           decimals: 6,
@@ -210,14 +199,13 @@ app.post('/aggregator/solana', async (req, res) => {
       }
     }
     
-    // 1. Extract payment header
-    // Log ALL incoming headers to debug
+    // 1. Extract payment header (v1 uses X-PAYMENT)
     console.log('[x402] === REQUEST RECEIVED ===');
     console.log('[x402] All header keys:', Object.keys(req.headers));
     
     // Manual extraction - Express normalizes headers to lowercase
-    const rawHeader = req.headers['payment-signature'] as string | undefined;
-    console.log('[x402] Raw payment-signature header:', rawHeader ? `FOUND (${rawHeader.length} chars)` : 'NOT FOUND');
+    const rawHeader = req.headers['x-payment'] as string | undefined;
+    console.log('[x402] Raw x-payment header:', rawHeader ? `FOUND (${rawHeader.length} chars)` : 'NOT FOUND');
     
     let paymentHeader: string | undefined;
     try {
@@ -234,13 +222,12 @@ app.post('/aggregator/solana', async (req, res) => {
       paymentHeader = rawHeader;
     }
     
-    // 2. Create payment requirements - EXACTLY as per README
-    // https://github.com/PayAINetwork/x402-solana#routeconfig-format
+    // 2. Create payment requirements - v1 uses maxAmountRequired
     let paymentRequirements: Awaited<ReturnType<typeof x402.createPaymentRequirements>>;
     try {
       paymentRequirements = await x402.createPaymentRequirements(
         {
-          amount: AGGREGATOR_PRICE, // "5000000" = $5 USDC
+          maxAmountRequired: AGGREGATOR_PRICE, // "5000000" = $5 USDC
           asset: {
             address: USDC_MINT,
             decimals: 6,
@@ -281,29 +268,11 @@ app.post('/aggregator/solana', async (req, res) => {
       console.log('[x402] Decoded payload version:', payload.x402Version);
       console.log('[x402] Decoded payload resource:', payload.resource?.url);
       
-      // #region agent log
-      debugLog('x402-server:aggregator', 'Decoded payment payload', {
-        x402Version: payload.x402Version,
-        resourceUrl: payload.resource?.url,
-        payloadType: payload.payload?.type,
-        transactionLength: payload.payload?.transaction?.length,
-        signatureLength: payload.payload?.signature?.length,
-        acceptedScheme: payload.accepted?.scheme,
-        acceptedNetwork: payload.accepted?.network,
-        acceptedAmount: payload.accepted?.amount,
-        acceptedFeePayer: payload.accepted?.extra?.feePayer,
-      }, 'B,C,E');
-      // #endregion
-      
       // Use the ORIGINAL requirements from the payment (contains correct feePayer)
       if (payload.accepted) {
         originalRequirements = payload.accepted;
         console.log('[x402] Using ORIGINAL requirements from payment header');
         console.log('[x402] Original feePayer:', originalRequirements.extra?.feePayer);
-        console.log('[x402] New feePayer would be:', paymentRequirements.extra?.feePayer);
-        if (originalRequirements.extra?.feePayer !== paymentRequirements.extra?.feePayer) {
-          console.log('[x402] ⚠️ feePayer MISMATCH detected - using original!');
-        }
         
         // SECURITY: Verify payTo matches our treasury
         if (originalRequirements.payTo !== treasuryAddress) {
@@ -311,9 +280,10 @@ app.post('/aggregator/solana', async (req, res) => {
           return res.status(402).json({ error: 'Invalid payment recipient' });
         }
         
-        // SECURITY: Verify amount is correct
-        if (originalRequirements.amount !== AGGREGATOR_PRICE) {
-          console.error('[x402] ❌ SECURITY: amount mismatch! Expected:', AGGREGATOR_PRICE, 'Got:', originalRequirements.amount);
+        // SECURITY: Verify amount is correct (v1 uses maxAmountRequired)
+        const paymentAmount = originalRequirements.maxAmountRequired || originalRequirements.amount;
+        if (paymentAmount !== AGGREGATOR_PRICE) {
+          console.error('[x402] ❌ SECURITY: amount mismatch! Expected:', AGGREGATOR_PRICE, 'Got:', paymentAmount);
           return res.status(402).json({ error: 'Invalid payment amount' });
         }
       }
@@ -326,31 +296,10 @@ app.post('/aggregator/solana', async (req, res) => {
     
     let verified: Awaited<ReturnType<typeof x402.verifyPayment>>;
     try {
-      // Use originalRequirements (from payment header) instead of paymentRequirements (newly generated)
-      // #region agent log
-      debugLog('x402-server:aggregator', 'About to call verifyPayment', {
-        paymentHeaderLength: paymentHeader.length,
-        originalRequirementsScheme: (originalRequirements as any).scheme,
-        originalRequirementsNetwork: (originalRequirements as any).network,
-        originalRequirementsAmount: (originalRequirements as any).amount,
-        originalRequirementsPayTo: (originalRequirements as any).payTo,
-        originalRequirementsAsset: (originalRequirements as any).asset,
-        originalRequirementsFeePayer: (originalRequirements as any).extra?.feePayer,
-      }, 'B,C');
-      // #endregion
       verified = await x402.verifyPayment(paymentHeader, originalRequirements);
       console.log('[x402] Verify result:', JSON.stringify(verified));
-      // #region agent log
-      debugLog('x402-server:aggregator', 'verifyPayment result', {
-        isValid: verified.isValid,
-        invalidReason: verified.invalidReason,
-      }, 'B,C');
-      // #endregion
     } catch (err) {
       console.error('[x402] verifyPayment threw:', err);
-      // #region agent log
-      debugLog('x402-server:aggregator', 'verifyPayment THREW', { error: String(err) }, 'B,C');
-      // #endregion
       return res.status(402).json({ 
         error: 'Payment verification failed', 
         reason: 'verify_exception',
@@ -360,9 +309,6 @@ app.post('/aggregator/solana', async (req, res) => {
     
     if (!verified.isValid) {
       console.error('[x402] Verification failed:', verified.invalidReason);
-      // #region agent log
-      debugLog('x402-server:aggregator', 'Verification FAILED', { invalidReason: verified.invalidReason }, 'B,C');
-      // #endregion
       return res.status(402).json({ 
         error: 'Invalid payment', 
         reason: verified.invalidReason 

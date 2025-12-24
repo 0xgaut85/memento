@@ -1,18 +1,12 @@
 'use client';
 
 /**
- * useX402 Hook - x402 payment integration
- * EXACTLY as per x402-solana README: https://github.com/PayAINetwork/x402-solana
+ * useX402 Hook - x402 payment integration (v1)
+ * Using x402-solana v0.1.5 (stable v1 protocol)
  */
 
 import { useState, useCallback, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-
-// #region agent log
-const debugLog = (location: string, message: string, data: Record<string, unknown>, hypothesisId: string) => {
-  fetch('http://127.0.0.1:7242/ingest/4fb0bd68-12cf-4c70-8923-01627438f337',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location,message,data,timestamp:Date.now(),sessionId:'debug-session',hypothesisId})}).catch(()=>{});
-};
-// #endregion
 
 const X402_SERVER_URL = process.env.NEXT_PUBLIC_X402_SERVER_URL || 'https://x402.memento.money';
 
@@ -39,32 +33,12 @@ function createProxyFetch(): typeof fetch {
       }
     }
     
-    // Check for payment header
-    const paymentSig = headersObj['PAYMENT-SIGNATURE'] || headersObj['payment-signature'];
+    // Check for payment header (v1 uses X-PAYMENT)
+    const paymentHeader = headersObj['X-PAYMENT'] || headersObj['x-payment'];
     console.log(`[customFetch #${callCount}] URL: ${targetUrl}`);
     console.log(`[customFetch #${callCount}] Method: ${init?.method || 'GET'}`);
-    console.log(`[customFetch #${callCount}] Has PAYMENT-SIGNATURE: ${!!paymentSig}${paymentSig ? ` (${paymentSig.length} chars)` : ''}`);
+    console.log(`[customFetch #${callCount}] Has X-PAYMENT: ${!!paymentHeader}${paymentHeader ? ` (${paymentHeader.length} chars)` : ''}`);
     console.log(`[customFetch #${callCount}] All headers:`, Object.keys(headersObj));
-    
-    // #region agent log
-    if (paymentSig) {
-      try {
-        const decoded = JSON.parse(atob(paymentSig));
-        debugLog('use-x402.ts:customFetch', 'PAYMENT-SIGNATURE decoded', {
-          x402Version: decoded.x402Version,
-          resourceUrl: decoded.resource?.url,
-          acceptedScheme: decoded.accepted?.scheme,
-          acceptedNetwork: decoded.accepted?.network,
-          acceptedAmount: decoded.accepted?.amount,
-          payloadType: decoded.payload?.type,
-          signatureLength: decoded.payload?.signature?.length,
-          transactionLength: decoded.payload?.transaction?.length,
-        }, 'C,E');
-      } catch (e) {
-        debugLog('use-x402.ts:customFetch', 'PAYMENT-SIGNATURE decode FAILED', { error: String(e), sigLength: paymentSig.length }, 'E');
-      }
-    }
-    // #endregion
 
     try {
       const proxyResponse = await globalThis.fetch('/api/proxy', {
@@ -161,18 +135,10 @@ export function useX402() {
       console.log('[x402] Wallet:', address);
       console.log('[x402] RPC:', HELIUS_RPC);
       
-      // Import and create client - EXACTLY as per README
-      const { createX402Client } = await import('@payai/x402-solana/client');
+      // Import and create client - v1 API
+      const { createX402Client } = await import('x402-solana/client');
       
-      // #region agent log
-      debugLog('use-x402.ts:requestAccess', 'x402 client imported', {
-        hasCreateX402Client: typeof createX402Client === 'function',
-        walletAddress: address,
-        network: 'solana',
-      }, 'A');
-      // #endregion
-      
-      console.log('[x402] Creating x402 client...');
+      console.log('[x402] Creating x402 client (v1)...');
       
       // Pass wallet with both publicKey and address for compatibility
       const walletAdapter = {
@@ -180,24 +146,10 @@ export function useX402() {
         address: wallet.publicKey.toString(),
         signTransaction: async (tx: any) => {
           console.log('[x402] >>> signTransaction called <<<');
-          // #region agent log
-          debugLog('use-x402.ts:signTransaction', 'Transaction BEFORE signing', {
-            numSignatures: tx.signatures?.length,
-            messageVersion: tx.message?.version,
-            numInstructions: tx.message?.compiledInstructions?.length,
-            instructionProgramIds: tx.message?.compiledInstructions?.map((ix: any) => tx.message?.staticAccountKeys?.[ix.programIdIndex]?.toString()),
-          }, 'B,D');
-          // #endregion
           if (!wallet.signTransaction) throw new Error('Wallet does not support signing');
           try {
             const signed = await wallet.signTransaction(tx);
             console.log('[x402] >>> Transaction signed! <<<');
-            // #region agent log
-            debugLog('use-x402.ts:signTransaction', 'Transaction AFTER signing', {
-              numSignatures: signed.signatures?.length,
-              numInstructions: signed.message?.compiledInstructions?.length,
-            }, 'D');
-            // #endregion
             return signed;
           } catch (signErr) {
             console.error('[x402] signTransaction error:', signErr);
@@ -208,13 +160,13 @@ export function useX402() {
       
       console.log('[x402] Creating client with wallet:', walletAdapter.address);
       
+      // v1 API uses maxPaymentAmount instead of amount
       const client = createX402Client({
         wallet: walletAdapter,
         network: 'solana',
         rpcUrl: HELIUS_RPC,
-        amount: BigInt(10_000_000),
+        maxPaymentAmount: BigInt(10_000_000),
         customFetch: createProxyFetch(),
-        verbose: true,
       });
 
       console.log('[x402] Client created, making paid request...');
@@ -237,15 +189,6 @@ export function useX402() {
       try {
         result = await response.json();
         console.log('[x402] Response body:', JSON.stringify(result).substring(0, 500));
-        // #region agent log
-        debugLog('use-x402.ts:requestAccess', 'Final response received', {
-          status: response.status,
-          success: result.success,
-          error: result.error,
-          reason: result.reason,
-          accessGranted: result.accessGranted,
-        }, 'C');
-        // #endregion
       } catch (jsonErr) {
         console.error('[x402] Failed to parse response JSON:', jsonErr);
         throw new Error('Invalid response from server');

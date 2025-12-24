@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * Proxy API Route for x402 requests
- * EXACTLY as per x402-solana README: https://github.com/PayAINetwork/x402-solana
+ * Using x402-solana v0.1.5 (v1 protocol with X-PAYMENT header)
  */
 
 export async function POST(req: NextRequest) {
@@ -13,12 +13,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'url and method required' }, { status: 400 });
     }
 
-    // Check for payment signature header - check ALL possible cases
-    const paymentSig = headers?.['PAYMENT-SIGNATURE'] || headers?.['payment-signature'] || headers?.['Payment-Signature'];
+    // Check for payment header - v1 uses X-PAYMENT
+    const paymentHeader = headers?.['X-PAYMENT'] || headers?.['x-payment'];
     console.log('[Proxy] Request:', method, url);
-    console.log('[Proxy] Has PAYMENT-SIGNATURE:', !!paymentSig, paymentSig ? `(${paymentSig.length} chars)` : '');
+    console.log('[Proxy] Has X-PAYMENT:', !!paymentHeader, paymentHeader ? `(${paymentHeader.length} chars)` : '');
     console.log('[Proxy] All header keys:', JSON.stringify(Object.keys(headers || {})));
-    console.log('[Proxy] Full headers object:', JSON.stringify(headers || {}).substring(0, 500));
 
     // Prepare headers - preserve x402 payment headers
     const requestHeaders: Record<string, string> = {
@@ -35,16 +34,14 @@ export async function POST(req: NextRequest) {
       }
     }
     
-    // CRITICAL: Forward payment signature header
-    // Only send ONE header (lowercase) - sending both causes Express to concatenate them!
-    const paymentSigValue = headers?.['PAYMENT-SIGNATURE'] || headers?.['payment-signature'] || headers?.['Payment-Signature'];
-    if (paymentSigValue) {
-      // Remove any existing payment signature headers to avoid duplication
-      delete requestHeaders['PAYMENT-SIGNATURE'];
-      delete requestHeaders['Payment-Signature'];
+    // CRITICAL: Forward payment header (v1 uses X-PAYMENT)
+    const paymentValue = headers?.['X-PAYMENT'] || headers?.['x-payment'];
+    if (paymentValue) {
+      // Remove any existing payment headers to avoid duplication
+      delete requestHeaders['X-PAYMENT'];
       // Use lowercase only - Express normalizes to lowercase anyway
-      requestHeaders['payment-signature'] = paymentSigValue;
-      console.log('[Proxy] Forwarding payment-signature:', paymentSigValue.length, 'chars');
+      requestHeaders['x-payment'] = paymentValue;
+      console.log('[Proxy] Forwarding x-payment:', paymentValue.length, 'chars');
     }
 
     // Remove problematic headers
