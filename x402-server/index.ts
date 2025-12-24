@@ -147,6 +147,7 @@ async function grantAccess(userId: string, paymentId: string) {
 }
 
 // v1 RouteConfig for payment requirements
+// outputSchema is required by x402scan for proper validation
 const routeConfig = {
   price: {
     amount: AGGREGATOR_PRICE,
@@ -158,6 +159,32 @@ const routeConfig = {
   network: NETWORK as 'solana' | 'solana-devnet',
   config: {
     description: 'Memento Aggregator - 24hr Access',
+    outputSchema: {
+      input: {
+        type: 'http' as const,
+        method: 'POST' as const,
+        bodyType: 'json' as const,
+        bodyFields: {
+          userAddress: {
+            type: 'string',
+            required: true,
+            description: 'Solana wallet address of the user requesting access',
+          },
+          accessType: {
+            type: 'string',
+            required: false,
+            description: 'Type of access: "human" for 24hr access, "agent" for one-time data',
+            enum: ['human', 'agent'],
+          },
+        },
+      },
+      output: {
+        success: { type: 'boolean', description: 'Whether the payment was successful' },
+        accessGranted: { type: 'boolean', description: 'Whether access was granted' },
+        expiresAt: { type: 'string', description: 'ISO timestamp when access expires' },
+        message: { type: 'string', description: 'Human-readable message' },
+      },
+    },
   },
 };
 
