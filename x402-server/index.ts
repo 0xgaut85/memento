@@ -105,10 +105,88 @@ app.get('/.well-known/x402', (_req, res) => {
   });
 });
 
-// Landing page
+// Landing page with full metadata for x402scan
 app.get('/', (_req, res) => {
   res.setHeader('Content-Type', 'text/html');
-  res.send(`<!doctype html><html><head><title>Memento x402</title></head><body style="font-family:system-ui;padding:2rem;background:#111;color:#fff"><h1>Memento x402 Server</h1><p>$5 USDC for 24hr access</p><a href="/.well-known/x402" style="color:#0af">x402 Discovery</a></body></html>`);
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memento x402 - Stablecoin Yield Aggregator</title>
+  <meta name="description" content="A new global privacy focused standard for earning yield on stablecoins, on-chain and beyond.">
+  
+  <!-- Open Graph / Social Media -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://x402.memento.money/">
+  <meta property="og:title" content="Memento x402 - Stablecoin Yield Aggregator">
+  <meta property="og:description" content="A new global privacy focused standard for earning yield on stablecoins, on-chain and beyond.">
+  <meta property="og:image" content="https://x402.memento.money/public/favicon.png">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Memento x402 - Stablecoin Yield Aggregator">
+  <meta name="twitter:description" content="A new global privacy focused standard for earning yield on stablecoins, on-chain and beyond.">
+  <meta name="twitter:image" content="https://x402.memento.money/public/favicon.png">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/public/favicon.png">
+  <link rel="apple-touch-icon" href="/public/favicon.png">
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: system-ui, -apple-system, sans-serif; 
+      background: #0a0a0a; 
+      color: #fff; 
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .container { max-width: 600px; text-align: center; }
+    .logo { width: 80px; height: 80px; margin-bottom: 1.5rem; }
+    h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+    .tagline { color: #888; font-size: 1.1rem; margin-bottom: 2rem; line-height: 1.6; }
+    .price { 
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .price-amount { font-size: 2.5rem; font-weight: bold; color: #00d4aa; }
+    .price-label { color: #888; font-size: 0.9rem; margin-top: 0.25rem; }
+    .links { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .links a { 
+      color: #00aaff; 
+      text-decoration: none; 
+      padding: 0.75rem 1.5rem;
+      border: 1px solid #00aaff;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .links a:hover { background: #00aaff; color: #000; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="/public/favicon.png" alt="Memento Logo" class="logo">
+    <h1>Memento x402</h1>
+    <p class="tagline">A new global privacy focused standard for earning yield on stablecoins, on-chain and beyond.</p>
+    <div class="price">
+      <div class="price-amount">$5 USDC</div>
+      <div class="price-label">24-hour access to AI-curated yield opportunities</div>
+    </div>
+    <div class="links">
+      <a href="https://app.memento.money">Launch App</a>
+      <a href="/.well-known/x402">x402 Discovery</a>
+    </div>
+  </div>
+</body>
+</html>`);
 });
 
 // --- x402 Payment Handler ---
