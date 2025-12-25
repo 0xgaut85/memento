@@ -8,4 +8,4 @@ cmds = ["npm ci || npm install"]
 cmds = ["node ./node_modules/prisma/build/index.js generate"]
 
 [start]
-cmd = "node ./node_modules/prisma/build/index.js migrate deploy && npm start"
+cmd = "npm start"
