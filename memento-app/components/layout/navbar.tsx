@@ -35,7 +35,7 @@ export function Navbar() {
                 className="w-8 h-8"
               />
               <span className="font-serif text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
-                memento
+                memento.money
               </span>
             </Link>
 
