@@ -62,13 +62,10 @@ export function CustomWalletModal() {
     [wallets, select, setVisible]
   );
 
-  // Filter to installed/detected wallets and exclude regular MetaMask (keep only Solana-compatible ones)
+  // Filter to installed/detected wallets
   const detectedWallets = useMemo(() => {
     return wallets.filter((w) => {
-      const isReady = w.readyState === 'Installed' || w.readyState === 'Loadable';
-      // Exclude regular MetaMask (not the Solana Snap version)
-      const isRegularMetaMask = w.adapter.name === 'MetaMask' && !w.adapter.name.includes('Snap');
-      return isReady && !isRegularMetaMask;
+      return w.readyState === 'Installed' || w.readyState === 'Loadable';
     });
   }, [wallets]);
 
