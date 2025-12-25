@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { WalletButton } from "@/components/ui/wallet-button";
 
 const navLinks = [
-  { href: "/stake", label: "Stake" },
+  { href: "/vaults", label: "Vaults" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/aggregator", label: "Aggregator" },
   { href: "/alpha", label: "Alpha" },
