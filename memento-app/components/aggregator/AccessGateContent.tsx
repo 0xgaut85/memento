@@ -10,8 +10,65 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useX402 } from '@/lib/hooks/use-x402';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { ArrowRight, Loader2, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
+import { ArrowRight, Loader2, AlertCircle, CheckCircle2, Sparkles, Clock, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
+
+// Premium countdown timer component
+function PremiumCountdown({ expiresAt }: { expiresAt: string | null }) {
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    if (!expiresAt) return;
+
+    const calculateTimeLeft = () => {
+      const now = new Date().getTime();
+      const expiry = new Date(expiresAt).getTime();
+      const difference = expiry - now;
+
+      if (difference <= 0) {
+        return { hours: 0, minutes: 0, seconds: 0 };
+      }
+
+      return {
+        hours: Math.floor(difference / (1000 * 60 * 60)),
+        minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+        seconds: Math.floor((difference % (1000 * 60)) / 1000),
+      };
+    };
+
+    setTimeLeft(calculateTimeLeft());
+
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [expiresAt]);
+
+  const formatNumber = (num: number) => num.toString().padStart(2, '0');
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="fixed bottom-6 right-6 z-50"
+    >
+      <div className="bg-black text-white px-5 py-3 flex items-center gap-4 shadow-2xl">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-primary" />
+          <span className="text-sm font-medium tracking-wide">Premium</span>
+        </div>
+        <div className="w-px h-4 bg-white/20" />
+        <div className="flex items-center gap-1.5 font-mono text-sm">
+          <Clock className="w-3.5 h-3.5 text-white/60" />
+          <span className="tabular-nums">
+            {formatNumber(timeLeft.hours)}:{formatNumber(timeLeft.minutes)}:{formatNumber(timeLeft.seconds)}
+          </span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 interface AccessGateContentProps {
   children: React.ReactNode;
@@ -92,237 +149,217 @@ export function AccessGateContent({ children }: AccessGateContentProps) {
     );
   }
 
-  // User has access
+  // User has access - show countdown timer
   if (hasAccess) {
     return (
       <>
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="fixed bottom-6 right-6 z-50"
-        >
-          <div className="bg-black text-white px-5 py-3 flex items-center gap-3 shadow-2xl">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium tracking-wide">
-              Premium Active
-              {remainingHours !== null && (
-                <span className="text-white/60 ml-2">• {remainingHours}h left</span>
-              )}
-            </span>
-          </div>
-        </motion.div>
+        <PremiumCountdown expiresAt={expiresAt} />
         {children}
       </>
     );
   }
 
-  // Access gate
+  // Access gate - Premium redesign
   return (
     <>
-      <div className="min-h-screen bg-white flex flex-col">
+      <div className="min-h-screen bg-black text-white flex flex-col relative overflow-hidden">
+        {/* Background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-black to-primary/20" />
+        
+        {/* Subtle grain texture */}
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-20"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='turbulence' baseFrequency='4' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E")`,
+            backgroundSize: '150px 150px',
+          }}
+        />
+
         {/* Main Content */}
-        <div className="flex-1 flex items-center justify-center px-6 py-24">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="max-w-2xl w-full text-center"
-          >
-            {/* Logo */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-              className="mb-10"
-            >
-              <Image
-                src="/transparentlogo.png"
-                alt="Memento"
-                width={80}
-                height={80}
-                className="w-20 h-20 mx-auto"
-              />
-            </motion.div>
-
-            {/* Headline */}
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.6 }}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter leading-[1.05] mb-4"
-            >
-              Premium Access
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
-              className="text-xl sm:text-2xl md:text-3xl font-serif italic text-foreground/70 mb-12"
-            >
-              Unlock the full yield aggregator
-            </motion.p>
-
-            {/* Price Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.6 }}
-              className="bg-gradient-to-br from-gray-50 to-white border border-gray-100 p-8 sm:p-10 mb-10 shadow-sm"
-            >
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-8">
-                <div className="text-center">
-                  <p className="text-5xl sm:text-6xl font-black tracking-tight">$5</p>
-                  <p className="text-sm text-foreground/50 mt-1 uppercase tracking-wider">USDC</p>
-                </div>
-                <div className="hidden sm:block w-px h-16 bg-gray-200" />
-                <div className="text-center">
-                  <p className="text-5xl sm:text-6xl font-black tracking-tight text-primary">24h</p>
-                  <p className="text-sm text-foreground/50 mt-1 uppercase tracking-wider">Access</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left text-sm text-foreground/70">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                  <span>All yield opportunities</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                  <span>Safe & Degen filtering</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                  <span>Real-time APY data</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                  <span>AI-curated selection</span>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* CTA Button */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.6 }}
-              className="flex flex-col items-center"
-            >
-              {!isConnected ? (
-                <div className="connect-wallet-cta">
-                  <WalletMultiButton />
-                  <style jsx global>{`
-                    .connect-wallet-cta .wallet-adapter-button {
-                      background-color: #000 !important;
-                      color: #fff !important;
-                      font-size: 1.125rem !important;
-                      font-weight: 600 !important;
-                      padding: 1.25rem 3rem !important;
-                      height: auto !important;
-                      border-radius: 0 !important;
-                      transition: all 0.3s ease !important;
-                      font-family: inherit !important;
-                    }
-                    .connect-wallet-cta .wallet-adapter-button:hover {
-                      background-color: var(--primary) !important;
-                    }
-                    .connect-wallet-cta .wallet-adapter-button-start-icon {
-                      display: none !important;
-                    }
-                  `}</style>
-                </div>
-              ) : (
-                <motion.button
-                  onClick={() => setShowPaymentModal(true)}
-                  disabled={isLoading}
-                  className="group relative overflow-hidden w-full sm:w-auto text-lg px-12 py-5 bg-black text-white font-semibold transition-all duration-300 disabled:opacity-50"
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-3">
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        Unlock for $5 USDC
-                        <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
-                      </>
-                    )}
-                  </span>
-                  <motion.div
-                    className="absolute inset-0 bg-primary"
-                    initial={{ x: "-100%" }}
-                    whileHover={{ x: 0 }}
-                    transition={{ duration: 0.3 }}
-                  />
-                </motion.button>
-              )}
-
-              {error && (
+        <div className="relative z-10 flex-1 flex items-center justify-center px-6 py-24">
+          <div className="max-w-5xl w-full">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+              
+              {/* Left: Content */}
+              <motion.div
+                initial={{ opacity: 0, x: -40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              >
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="mt-6 flex items-center justify-center gap-2 text-red-600 text-sm"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="mb-8"
                 >
-                  <AlertCircle className="w-4 h-4" />
-                  {error}
+                  <Image
+                    src="/transparentlogo.png"
+                    alt="Memento"
+                    width={64}
+                    height={64}
+                    className="w-16 h-16 invert"
+                  />
                 </motion.div>
-              )}
-            </motion.div>
 
-            {/* Phantom Warning */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.7, duration: 0.6 }}
-              className="mt-10 p-4 bg-amber-50 border border-amber-200 text-left"
-            >
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-semibold text-amber-800 mb-1">
-                    Phantom Wallet Not Supported
-                  </p>
-                  <p className="text-amber-700 mb-2">
-                    Due to Phantom&apos;s Lighthouse security update, x402 payments are currently incompatible. 
-                    Please use <span className="font-semibold">Solflare</span>, <span className="font-semibold">Backpack</span>, or <span className="font-semibold">MetaMask Snap</span> instead.
-                  </p>
-                  <div className="flex flex-wrap gap-3 text-xs">
-                    <a 
-                      href="https://github.com/coinbase/x402/issues/828" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-amber-600 hover:text-amber-800 underline"
-                    >
-                      View x402 Issue #828
-                    </a>
-                    <a 
-                      href="https://github.com/payainetwork/x402-solana/issues" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-amber-600 hover:text-amber-800 underline"
-                    >
-                      PayAI x402-solana Issues
-                    </a>
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tighter leading-[0.95] mb-4"
+                >
+                  Memento
+                  <br />
+                  <span className="font-serif italic font-normal text-white/40">Premium</span>
+                </motion.h1>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-lg sm:text-xl text-white/50 mb-8 max-w-md"
+                >
+                  Unlock the full yield aggregator with AI-curated opportunities across 100+ protocols.
+                </motion.p>
+
+                {/* Features */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="space-y-3 mb-8"
+                >
+                  {[
+                    'All yield opportunities',
+                    'Safe & Degen filtering',
+                    'Real-time APY data',
+                    'AI-curated selection',
+                  ].map((feature, i) => (
+                    <div key={feature} className="flex items-center gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                      <span className="text-white/70">{feature}</span>
+                    </div>
+                  ))}
+                </motion.div>
+              </motion.div>
+
+              {/* Right: Payment Card */}
+              <motion.div
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <div className="bg-white text-black p-8 sm:p-10 shadow-2xl">
+                  {/* Price */}
+                  <div className="flex items-end gap-2 mb-2">
+                    <span className="text-6xl sm:text-7xl font-black tracking-tight">$5</span>
+                    <span className="text-2xl font-semibold text-black/50 mb-2">USDC</span>
                   </div>
-                </div>
-              </div>
-            </motion.div>
+                  <div className="flex items-center gap-2 mb-8">
+                    <span className="text-lg text-black/60">for</span>
+                    <span className="text-lg font-semibold text-primary">24 hours</span>
+                    <span className="text-lg text-black/60">of premium access</span>
+                  </div>
 
-            {/* Footer note */}
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8, duration: 0.6 }}
-              className="mt-8 text-sm text-foreground/40"
-            >
-              Powered by x402 protocol • Instant access after payment
-            </motion.p>
-          </motion.div>
+                  {/* CTA Button */}
+                  {!isConnected ? (
+                    <div className="connect-wallet-cta mb-6">
+                      <WalletMultiButton />
+                      <style jsx global>{`
+                        .connect-wallet-cta .wallet-adapter-button {
+                          width: 100% !important;
+                          background-color: #000 !important;
+                          color: #fff !important;
+                          font-size: 1.125rem !important;
+                          font-weight: 600 !important;
+                          padding: 1.25rem 2rem !important;
+                          height: auto !important;
+                          border-radius: 0 !important;
+                          transition: all 0.3s ease !important;
+                          font-family: inherit !important;
+                          justify-content: center !important;
+                        }
+                        .connect-wallet-cta .wallet-adapter-button:hover {
+                          background-color: #a855f7 !important;
+                        }
+                        .connect-wallet-cta .wallet-adapter-button-start-icon {
+                          display: none !important;
+                        }
+                      `}</style>
+                    </div>
+                  ) : (
+                    <motion.button
+                      onClick={() => setShowPaymentModal(true)}
+                      disabled={isLoading}
+                      className="w-full group relative overflow-hidden text-lg px-8 py-5 bg-black text-white font-semibold transition-all duration-300 disabled:opacity-50 mb-6"
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                    >
+                      <span className="relative z-10 flex items-center justify-center gap-3">
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            Unlock Now
+                            <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
+                          </>
+                        )}
+                      </span>
+                      <motion.div
+                        className="absolute inset-0 bg-primary"
+                        initial={{ x: "-100%" }}
+                        whileHover={{ x: 0 }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    </motion.button>
+                  )}
+
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="mb-6 flex items-center justify-center gap-2 text-red-600 text-sm"
+                    >
+                      <AlertCircle className="w-4 h-4" />
+                      {error}
+                    </motion.div>
+                  )}
+
+                  {/* Third-party wallet warning */}
+                  <div className="p-4 bg-amber-50 border border-amber-100">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm">
+                        <p className="font-semibold text-amber-800 mb-1">
+                          Third-Party Wallet Compatibility
+                        </p>
+                        <p className="text-amber-700 mb-2">
+                          Some wallets (Phantom, Solflare) modify transactions for security, which may cause x402 payment issues. 
+                          Use <span className="font-semibold">Backpack</span> for best results.
+                        </p>
+                        <a 
+                          href="https://github.com/coinbase/x402/issues/828" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800 underline"
+                        >
+                          View x402 Issue #828
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <p className="mt-6 text-center text-xs text-black/40">
+                    Powered by x402 protocol • Instant access after payment
+                  </p>
+                </div>
+              </motion.div>
+            </div>
+          </div>
         </div>
       </div>
 

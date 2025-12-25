@@ -3,14 +3,26 @@
 /**
  * CustomWalletModal - Premium wallet selection modal
  * Matches the Memento design system
+ * 
+ * Wallet compatibility notes:
+ * - Phantom: Lighthouse security update causes x402 issues
+ * - Solflare: May modify transactions, causing verification failures
+ * - Backpack: Recommended - works well with x402
+ * - Privy: Embedded wallet option for seamless onboarding
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Wallet, ExternalLink, AlertCircle } from 'lucide-react';
+import { X, Wallet, ExternalLink, AlertTriangle, CheckCircle } from 'lucide-react';
 import Image from 'next/image';
+
+// Wallets with known x402 compatibility issues
+const PROBLEMATIC_WALLETS = ['Phantom', 'Solflare'];
+
+// Recommended wallets that work well with x402
+const RECOMMENDED_WALLETS = ['Backpack'];
 
 export function CustomWalletModal() {
   const { wallets, select, connecting } = useWallet();
@@ -50,10 +62,38 @@ export function CustomWalletModal() {
     [wallets, select, setVisible]
   );
 
-  // Filter to installed/detected wallets
-  const detectedWallets = wallets.filter(
-    (w) => w.readyState === 'Installed' || w.readyState === 'Loadable'
-  );
+  // Filter to installed/detected wallets and exclude regular MetaMask (keep only Solana-compatible ones)
+  const detectedWallets = useMemo(() => {
+    return wallets.filter((w) => {
+      const isReady = w.readyState === 'Installed' || w.readyState === 'Loadable';
+      // Exclude regular MetaMask (not the Solana Snap version)
+      const isRegularMetaMask = w.adapter.name === 'MetaMask' && !w.adapter.name.includes('Snap');
+      return isReady && !isRegularMetaMask;
+    });
+  }, [wallets]);
+
+  // Sort wallets: recommended first, then normal, then problematic at the end
+  const sortedWallets = useMemo(() => {
+    return [...detectedWallets].sort((a, b) => {
+      const aIsRecommended = RECOMMENDED_WALLETS.includes(a.adapter.name);
+      const bIsRecommended = RECOMMENDED_WALLETS.includes(b.adapter.name);
+      const aIsProblematic = PROBLEMATIC_WALLETS.includes(a.adapter.name);
+      const bIsProblematic = PROBLEMATIC_WALLETS.includes(b.adapter.name);
+
+      // Recommended wallets first
+      if (aIsRecommended && !bIsRecommended) return -1;
+      if (!aIsRecommended && bIsRecommended) return 1;
+
+      // Problematic wallets last
+      if (aIsProblematic && !bIsProblematic) return 1;
+      if (!aIsProblematic && bIsProblematic) return -1;
+
+      return 0;
+    });
+  }, [detectedWallets]);
+
+  const isProblematic = (name: string) => PROBLEMATIC_WALLETS.includes(name);
+  const isRecommended = (name: string) => RECOMMENDED_WALLETS.includes(name);
 
   return (
     <AnimatePresence>
@@ -106,66 +146,124 @@ export function CustomWalletModal() {
             </div>
 
             {/* Wallet List */}
-            <div className="px-8 py-6">
-              {detectedWallets.length > 0 ? (
+            <div className="px-8 py-6 max-h-[50vh] overflow-y-auto">
+              {sortedWallets.length > 0 ? (
                 <div className="space-y-3">
-                  {detectedWallets.map((wallet) => (
-                    <motion.button
-                      key={wallet.adapter.name}
-                      onClick={() => handleWalletSelect(wallet.adapter.name)}
-                      disabled={connecting}
-                      className="w-full group relative overflow-hidden"
-                      whileHover={{ scale: 1.01 }}
-                      whileTap={{ scale: 0.99 }}
-                    >
-                      <div className="relative flex items-center gap-4 p-4 bg-gray-50 border border-gray-100 hover:border-gray-200 hover:bg-gray-100/80 transition-all duration-200">
-                        {/* Wallet Icon */}
-                        <div className="w-12 h-12 bg-white border border-gray-100 flex items-center justify-center overflow-hidden">
-                          {wallet.adapter.icon && (
-                            <Image
-                              src={wallet.adapter.icon}
-                              alt={wallet.adapter.name}
-                              width={32}
-                              height={32}
-                              className="w-8 h-8"
+                  {sortedWallets.map((wallet) => {
+                    const problematic = isProblematic(wallet.adapter.name);
+                    const recommended = isRecommended(wallet.adapter.name);
+
+                    return (
+                      <motion.button
+                        key={wallet.adapter.name}
+                        onClick={() => handleWalletSelect(wallet.adapter.name)}
+                        disabled={connecting}
+                        className={`w-full group relative overflow-hidden ${problematic ? 'opacity-60' : ''}`}
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
+                      >
+                        <div className={`relative flex items-center gap-4 p-4 border transition-all duration-200 ${
+                          problematic 
+                            ? 'bg-red-50/50 border-red-100 hover:border-red-200' 
+                            : recommended
+                              ? 'bg-green-50/50 border-green-100 hover:border-green-200'
+                              : 'bg-gray-50 border-gray-100 hover:border-gray-200 hover:bg-gray-100/80'
+                        }`}>
+                          {/* Wallet Icon */}
+                          <div className="w-12 h-12 bg-white border border-gray-100 flex items-center justify-center overflow-hidden">
+                            {wallet.adapter.icon && (
+                              <Image
+                                src={wallet.adapter.icon}
+                                alt={wallet.adapter.name}
+                                width={32}
+                                height={32}
+                                className="w-8 h-8"
+                              />
+                            )}
+                          </div>
+
+                          {/* Wallet Info */}
+                          <div className="flex-1 text-left">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-foreground tracking-tight">
+                                {wallet.adapter.name}
+                              </p>
+                              {recommended && (
+                                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium">
+                                  Recommended
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-foreground/50">
+                              {problematic ? (
+                                <span className="text-red-600 flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  May have x402 issues
+                                </span>
+                              ) : recommended ? (
+                                <span className="text-green-600 flex items-center gap-1">
+                                  <CheckCircle className="w-3 h-3" />
+                                  Works with x402
+                                </span>
+                              ) : (
+                                wallet.readyState === 'Installed' ? 'Detected' : 'Available'
+                              )}
+                            </p>
+                          </div>
+
+                          {/* Warning or Arrow */}
+                          <div className="w-8 h-8 flex items-center justify-center">
+                            {problematic ? (
+                              <AlertTriangle className="w-5 h-5 text-red-500" />
+                            ) : (
+                              <svg
+                                className="w-5 h-5 text-foreground/30 group-hover:text-foreground/60 group-hover:translate-x-0.5 transition-all"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 5l7 7-7 7"
+                                />
+                              </svg>
+                            )}
+                          </div>
+
+                          {/* Hover effect */}
+                          {!problematic && (
+                            <motion.div
+                              className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
                             />
                           )}
                         </div>
+                      </motion.button>
+                    );
+                  })}
 
-                        {/* Wallet Info */}
-                        <div className="flex-1 text-left">
-                          <p className="font-semibold text-foreground tracking-tight">
-                            {wallet.adapter.name}
-                          </p>
-                          <p className="text-sm text-foreground/50">
-                            {wallet.readyState === 'Installed' ? 'Detected' : 'Available'}
-                          </p>
-                        </div>
-
-                        {/* Arrow */}
-                        <div className="w-8 h-8 flex items-center justify-center text-foreground/30 group-hover:text-foreground/60 transition-colors">
-                          <svg
-                            className="w-5 h-5 group-hover:translate-x-0.5 transition-transform"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
-                        </div>
-
-                        {/* Hover effect */}
-                        <motion.div
-                          className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                        />
+                  {/* Privy option */}
+                  <div className="pt-4 border-t border-gray-100">
+                    <p className="text-xs text-foreground/40 mb-3 uppercase tracking-wider font-medium">
+                      Or use an embedded wallet
+                    </p>
+                    <a
+                      href="https://privy.io"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 hover:border-indigo-200 transition-all"
+                    >
+                      <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                        P
                       </div>
-                    </motion.button>
-                  ))}
+                      <div className="flex-1 text-left">
+                        <p className="font-semibold text-foreground tracking-tight">Privy</p>
+                        <p className="text-sm text-foreground/50">Embedded wallet • Coming soon</p>
+                      </div>
+                      <ExternalLink className="w-4 h-4 text-foreground/30" />
+                    </a>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -178,23 +276,6 @@ export function CustomWalletModal() {
                   </p>
                 </div>
               )}
-            </div>
-
-            {/* Phantom Warning */}
-            <div className="px-8 pb-6">
-              <div className="p-4 bg-amber-50 border border-amber-100">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm">
-                    <p className="font-semibold text-amber-800 mb-1">
-                      Phantom Not Supported
-                    </p>
-                    <p className="text-amber-700">
-                      Use Solflare or Backpack for x402 payments.
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Footer */}
@@ -241,4 +322,3 @@ export function CustomWalletModal() {
     </AnimatePresence>
   );
 }
-
