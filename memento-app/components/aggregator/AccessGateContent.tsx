@@ -186,20 +186,26 @@ export function AccessGateContent({ children }: AccessGateContentProps) {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               >
-                <motion.div
+                <motion.a
+                  href="https://memento.money"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="mb-8"
+                  className="inline-flex items-center gap-3 mb-8 group"
                 >
                   <Image
                     src="/transparentlogo.png"
                     alt="Memento"
-                    width={64}
-                    height={64}
-                    className="w-16 h-16 invert"
+                    width={48}
+                    height={48}
+                    className="w-12 h-12 invert"
                   />
-                </motion.div>
+                  <span className="font-serif text-xl text-white/60 group-hover:text-white transition-colors">
+                    memento.money
+                  </span>
+                </motion.a>
 
                 <motion.h1
                   initial={{ opacity: 0, y: 20 }}
@@ -209,7 +215,7 @@ export function AccessGateContent({ children }: AccessGateContentProps) {
                 >
                   Memento
                   <br />
-                  <span className="font-serif italic font-normal text-white/40">Premium</span>
+                  <span className="font-serif italic font-normal text-white/40">Aggregator</span>
                 </motion.h1>
 
                 <motion.p
@@ -262,50 +268,15 @@ export function AccessGateContent({ children }: AccessGateContentProps) {
 
                   {/* CTA Button */}
                   {!isConnected ? (
-                    <div className="connect-wallet-cta mb-6">
-                      <WalletMultiButton />
-                      <style jsx global>{`
-                        .connect-wallet-cta .wallet-adapter-button {
-                          width: 100% !important;
-                          background-color: #000 !important;
-                          color: #fff !important;
-                          font-size: 1.125rem !important;
-                          font-weight: 600 !important;
-                          padding: 1.25rem 2rem !important;
-                          height: auto !important;
-                          border-radius: 0 !important;
-                          transition: all 0.3s ease !important;
-                          font-family: inherit !important;
-                          justify-content: center !important;
-                        }
-                        .connect-wallet-cta .wallet-adapter-button:hover {
-                          background-color: #a855f7 !important;
-                        }
-                        .connect-wallet-cta .wallet-adapter-button-start-icon {
-                          display: none !important;
-                        }
-                      `}</style>
-                    </div>
-                  ) : (
                     <motion.button
-                      onClick={() => setShowPaymentModal(true)}
-                      disabled={isLoading}
-                      className="w-full group relative overflow-hidden text-lg px-8 py-5 bg-black text-white font-semibold transition-all duration-300 disabled:opacity-50 mb-6"
+                      onClick={() => setVisible(true)}
+                      className="w-full group relative overflow-hidden text-lg px-8 py-5 bg-black text-white font-semibold transition-all duration-300 mb-6"
                       whileHover={{ scale: 1.01 }}
                       whileTap={{ scale: 0.99 }}
                     >
                       <span className="relative z-10 flex items-center justify-center gap-3">
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            Unlock Now
-                            <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
-                          </>
-                        )}
+                        Connect Wallet
+                        <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
                       </span>
                       <motion.div
                         className="absolute inset-0 bg-primary"
@@ -314,6 +285,60 @@ export function AccessGateContent({ children }: AccessGateContentProps) {
                         transition={{ duration: 0.3 }}
                       />
                     </motion.button>
+                  ) : (
+                    <div className="space-y-3 mb-6">
+                      <motion.button
+                        onClick={() => setShowPaymentModal(true)}
+                        disabled={isLoading}
+                        className="w-full group relative overflow-hidden text-lg px-8 py-5 bg-black text-white font-semibold transition-all duration-300 disabled:opacity-50"
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
+                      >
+                        <span className="relative z-10 flex items-center justify-center gap-3">
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              Unlock Now
+                              <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
+                            </>
+                          )}
+                        </span>
+                        <motion.div
+                          className="absolute inset-0 bg-primary"
+                          initial={{ x: "-100%" }}
+                          whileHover={{ x: 0 }}
+                          transition={{ duration: 0.3 }}
+                        />
+                      </motion.button>
+                      
+                      {/* Connected wallet info */}
+                      <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100">
+                        <div className="flex items-center gap-2">
+                          {wallet.wallet?.adapter.icon && (
+                            <Image
+                              src={wallet.wallet.adapter.icon}
+                              alt={wallet.wallet.adapter.name}
+                              width={20}
+                              height={20}
+                              className="w-5 h-5"
+                            />
+                          )}
+                          <span className="text-sm font-mono text-black/70">
+                            {publicKey?.toString().slice(0, 4)}...{publicKey?.toString().slice(-4)}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setVisible(true)}
+                          className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
+                        >
+                          Switch
+                        </button>
+                      </div>
+                    </div>
                   )}
 
                   {error && (
