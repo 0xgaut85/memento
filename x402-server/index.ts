@@ -15,11 +15,23 @@ config();
 
 const prisma = new PrismaClient();
 
+// Graceful shutdown handler
+process.on('SIGTERM', async () => {
+  console.log('[x402] SIGTERM received, shutting down gracefully...');
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('[x402] SIGINT received, shutting down gracefully...');
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
 // Configuration
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 4000;
 const treasuryAddress = process.env.TREASURY_WALLET_ADDRESS!;
 const serverPublicUrl = process.env.X402_PUBLIC_URL || 'https://x402.memento.money';
-const mementoAppUrl = process.env.MEMENTO_APP_URL || 'https://app.memento.money';
 // Solana RPC (use Helius to avoid public RPC rate limiting)
 const SOLANA_RPC_URL =
   process.env.SOLANA_RPC_URL ||
@@ -46,30 +58,6 @@ const app = express();
 
 // Trust proxy for Railway
 app.set('trust proxy', true);
-
-// Health check
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'Memento x402 Server', timestamp: new Date().toISOString() });
-});
-
-// Debug config endpoint
-app.get('/debug/config', (_req, res) => {
-  let rpcHost = 'unknown';
-  try {
-    rpcHost = new URL(SOLANA_RPC_URL).host;
-  } catch {
-    rpcHost = 'invalid';
-  }
-  res.json({
-    network: NETWORK,
-    usdcMint: USDC_MINT,
-    treasury: treasuryAddress,
-    facilitator: 'https://facilitator.payai.network',
-    rpcHost,
-    nodeEnv: process.env.NODE_ENV,
-    price: AGGREGATOR_PRICE,
-  });
-});
 
 // CORS - allow all for x402 headers (v1 uses X-PAYMENT)
 app.use((_req, res, next) => {
@@ -375,14 +363,14 @@ app.post('/aggregator/solana', async (req, res) => {
         
         // SECURITY: Verify payTo matches our treasury
         if (originalRequirements.payTo !== treasuryAddress) {
-          console.error('[x402] ❌ SECURITY: payTo mismatch! Expected:', treasuryAddress, 'Got:', originalRequirements.payTo);
+          console.error('[x402] SECURITY: payTo mismatch! Expected:', treasuryAddress, 'Got:', originalRequirements.payTo);
           return res.status(402).json({ error: 'Invalid payment recipient' });
         }
         
         // SECURITY: Verify amount is correct (v1 uses maxAmountRequired)
         const paymentAmount = originalRequirements.maxAmountRequired || originalRequirements.amount;
         if (paymentAmount !== AGGREGATOR_PRICE) {
-          console.error('[x402] ❌ SECURITY: amount mismatch! Expected:', AGGREGATOR_PRICE, 'Got:', paymentAmount);
+          console.error('[x402] SECURITY: amount mismatch! Expected:', AGGREGATOR_PRICE, 'Got:', paymentAmount);
           return res.status(402).json({ error: 'Invalid payment amount' });
         }
       }
