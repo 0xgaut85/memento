@@ -1,24 +1,28 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 
-const scrollingWords = [
-  "cash",
-  "lending",
-  "saving",
-  "staking",
-  "yields",
-  "vaults",
-  "liquidity",
-  "farming",
+const cyclingWords = ["cash", "stables", "savings", "yields", "liquidity"];
+
+const stablecoins = [
+  { name: "USDC", logo: "/cryptologo/USDC.png" },
+  { name: "USDT", logo: "/cryptologo/USDT.png" },
+  { name: "DAI", logo: "/cryptologo/DAI.png" },
+  { name: "USDS", logo: "/cryptologo/USDS.png" },
+  { name: "USDe", logo: "/cryptologo/USDe.png" },
+  { name: "pyUSD", logo: "/cryptologo/pyUSD.png" },
+  { name: "crvUSD", logo: "/cryptologo/crvUSD.png" },
+  { name: "GHO", logo: "/cryptologo/GHO.png" },
 ];
 
 export default function Home() {
   const heroRef = useRef(null);
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ["start start", "end start"],
@@ -27,6 +31,14 @@ export default function Home() {
   const videoScale = useTransform(scrollYProgress, [0, 1], [1, 1.2]);
   const videoOpacity = useTransform(scrollYProgress, [0, 0.8], [0.6, 0.2]);
   const textY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+
+  // Cycle through words
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentWordIndex((prev) => (prev + 1) % cyclingWords.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
@@ -63,7 +75,19 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.95] mb-6"
           >
-            Put your cash
+            Put your{" "}
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={currentWordIndex}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="text-primary font-serif italic"
+              >
+                {cyclingWords[currentWordIndex]}
+              </motion.span>
+            </AnimatePresence>
             <br />
             <span className="font-serif italic font-normal text-white/40">to work</span>
           </motion.h1>
@@ -78,7 +102,7 @@ export default function Home() {
             Safely, simply, privately, on Solana.
           </motion.p>
 
-          {/* Scrolling words - infinite scroll */}
+          {/* Stablecoin logos - infinite scroll */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -86,13 +110,20 @@ export default function Home() {
             className="relative mb-12 overflow-hidden"
           >
             <div className="flex gap-8 animate-scroll">
-              {[...scrollingWords, ...scrollingWords, ...scrollingWords].map((word, i) => (
+              {[...stablecoins, ...stablecoins, ...stablecoins].map((coin, i) => (
                 <div
-                  key={`${word}-${i}`}
-                  className="flex items-center gap-4 flex-shrink-0"
+                  key={`${coin.name}-${i}`}
+                  className="flex items-center gap-3 flex-shrink-0"
                 >
-                  <span className="text-white/50 font-serif italic text-lg">{word}</span>
-                  <span className="text-white/20">•</span>
+                  <div className="w-10 h-10 relative rounded-full overflow-hidden bg-white/10 border border-white/20">
+                    <Image
+                      src={coin.logo}
+                      alt={coin.name}
+                      fill
+                      className="object-cover p-1"
+                    />
+                  </div>
+                  <span className="text-white/60 font-medium">{coin.name}</span>
                 </div>
               ))}
             </div>
@@ -141,29 +172,6 @@ export default function Home() {
           </motion.div>
         </motion.div>
       </section>
-
-      {/* Footer */}
-      <footer className="py-12 border-t border-white/10 bg-black">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
-            <div className="flex items-center gap-6 text-sm text-white/40">
-              <a href="https://memento.money" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
-                memento.money
-              </a>
-              <span>•</span>
-              <span>Powered by x402</span>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-white/40">
-              <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
-              <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-              <Link href="/risk" className="hover:text-white transition-colors">Risk Disclosure</Link>
-            </div>
-          </div>
-          <div className="text-center text-xs text-white/30">
-            © 2025 Memento. All rights reserved.
-          </div>
-        </div>
-      </footer>
 
       {/* CSS for infinite scroll animation */}
       <style jsx global>{`
