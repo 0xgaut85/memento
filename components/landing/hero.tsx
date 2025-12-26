@@ -2,7 +2,6 @@
 
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { ComingSoonDialog, useComingSoon } from "@/components/landing/coming-soon-dialog";
 import { GlitchImage } from "@/components/ui/glitch-image";
 import { GlitchText } from "@/components/ui/glitch-text";
 import { TypingText } from "@/components/ui/typing-text";
@@ -10,7 +9,6 @@ import { AnimatedRange } from "@/components/ui/animated-counter";
 import { useRef } from "react";
 
 export function Hero() {
-  const { open, setOpen, showComingSoon } = useComingSoon();
   const ref = useRef(null);
   
   const { scrollYProgress } = useScroll({
@@ -68,8 +66,8 @@ export function Hero() {
               transition={{ duration: 0.7, delay: 4.3 }}
               className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto pt-1 sm:pt-2"
             >
-              <motion.button
-                onClick={showComingSoon}
+              <motion.a
+                href="https://app.memento.money"
                 className="group relative overflow-hidden w-full sm:w-auto text-sm sm:text-base md:text-lg px-6 sm:px-8 md:px-10 py-3 sm:py-4 md:py-5 bg-black text-white font-semibold transition-all duration-300"
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
@@ -78,7 +76,7 @@ export function Hero() {
                   Start earning
                   <ArrowRight className="h-4 w-4 md:h-5 md:w-5 group-hover:translate-x-0.5 transition-transform duration-300" />
                 </span>
-              </motion.button>
+              </motion.a>
             </motion.div>
 
             <motion.div
@@ -130,7 +128,6 @@ export function Hero() {
           </motion.div>
         </div>
       </div>
-      <ComingSoonDialog open={open} onOpenChange={setOpen} />
     </section>
   );
 }
