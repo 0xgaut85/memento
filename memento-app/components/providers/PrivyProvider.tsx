@@ -30,6 +30,7 @@ export function PrivyWalletProvider({ children }: PrivyWalletProviderProps) {
           theme: 'light',
           accentColor: '#a855f7', // Purple accent to match Memento
           logo: '/transparentlogo.png',
+          walletChainType: 'solana-only', // Only show Solana wallets
         },
         // Embedded wallet config - create for users without wallets
         embeddedWallets: {
