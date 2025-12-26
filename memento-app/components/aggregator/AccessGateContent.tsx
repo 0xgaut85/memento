@@ -354,28 +354,28 @@ export function AccessGateContent({ children }: AccessGateContentProps) {
 
                   {/* Third-party wallet warning */}
                   <div className="p-4 bg-amber-50 border border-amber-100">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-semibold text-amber-800 mb-1">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm">
+                        <p className="font-semibold text-amber-800 mb-1">
                           Third-Party Wallet Compatibility
-                  </p>
-                  <p className="text-amber-700 mb-2">
+                        </p>
+                        <p className="text-amber-700 mb-2">
                           Some wallets (Phantom, Solflare) modify transactions for security, which may cause x402 payment issues. 
-                          Use <span className="font-semibold">Backpack</span> for best results.
-                  </p>
-                    <a 
-                      href="https://github.com/coinbase/x402/issues/828" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
+                          Use <span className="font-semibold">Backpack</span> or <span className="font-semibold">Metamask</span> in the meantime.
+                        </p>
+                        <a 
+                          href="https://github.com/coinbase/x402/issues/828" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800 underline"
-                    >
-                      View x402 Issue #828
+                        >
+                          View x402 Issue #828
                           <ExternalLink className="w-3 h-3" />
-                    </a>
+                        </a>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
                   {/* Footer */}
                   <p className="mt-6 text-center text-xs text-black/40">

@@ -50,7 +50,15 @@ export function CustomWalletModal() {
     async (walletName: string) => {
       const wallet = wallets.find((w) => w.adapter.name === walletName);
       if (wallet) {
-        select(wallet.adapter.name);
+        try {
+          // Select the wallet first
+          select(wallet.adapter.name);
+          // Then explicitly connect
+          await wallet.adapter.connect();
+        } catch (error) {
+          // User may have rejected - that's fine
+          console.debug('[Wallet] Connection cancelled or failed');
+        }
         setVisible(false);
       }
     },
