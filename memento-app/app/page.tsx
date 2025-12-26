@@ -6,15 +6,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef } from "react";
 
-const stablecoins = [
-  { name: "USDC", logo: "/cryptologo/USDC.png" },
-  { name: "USDT", logo: "/cryptologo/USDT.png" },
-  { name: "DAI", logo: "/cryptologo/DAI.png" },
-  { name: "USDS", logo: "/cryptologo/USDS.png" },
-  { name: "USDe", logo: "/cryptologo/USDe.png" },
-  { name: "pyUSD", logo: "/cryptologo/pyUSD.png" },
-  { name: "crvUSD", logo: "/cryptologo/crvUSD.png" },
-  { name: "GHO", logo: "/cryptologo/GHO.png" },
+const scrollingWords = [
+  "cash",
+  "lending",
+  "saving",
+  "staking",
+  "yields",
+  "vaults",
+  "liquidity",
+  "farming",
 ];
 
 export default function Home() {
@@ -63,7 +63,7 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.95] mb-6"
           >
-            Put your stables
+            Put your cash
             <br />
             <span className="font-serif italic font-normal text-white/40">to work</span>
           </motion.h1>
@@ -78,32 +78,21 @@ export default function Home() {
             Safely, simply, privately, on Solana.
           </motion.p>
 
-          {/* Stablecoin logos - infinite scroll */}
+          {/* Scrolling words - infinite scroll */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.7 }}
             className="relative mb-12 overflow-hidden"
           >
-            {/* Gradient masks */}
-            <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
-            
             <div className="flex gap-8 animate-scroll">
-              {[...stablecoins, ...stablecoins, ...stablecoins].map((coin, i) => (
+              {[...scrollingWords, ...scrollingWords, ...scrollingWords].map((word, i) => (
                 <div
-                  key={`${coin.name}-${i}`}
-                  className="flex items-center gap-3 flex-shrink-0"
+                  key={`${word}-${i}`}
+                  className="flex items-center gap-4 flex-shrink-0"
                 >
-                  <div className="w-10 h-10 relative rounded-full overflow-hidden bg-white/10 border border-white/20">
-                    <Image
-                      src={coin.logo}
-                      alt={coin.name}
-                      fill
-                      className="object-cover p-1"
-                    />
-                  </div>
-                  <span className="text-white/60 font-medium">{coin.name}</span>
+                  <span className="text-white/50 font-serif italic text-lg">{word}</span>
+                  <span className="text-white/20">•</span>
                 </div>
               ))}
             </div>
@@ -153,54 +142,25 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* CTA Section */}
-      <section className="relative py-24 lg:py-32 bg-black">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter mb-6">
-              Ready to start?
-            </h2>
-            <p className="text-lg text-white/50 mb-10 max-w-xl mx-auto font-serif italic">
-              You didn&apos;t survive 2 cycles to earn 3%.
-            </p>
-            <Link href="/aggregator">
-              <motion.button
-                className="group relative overflow-hidden px-12 py-6 bg-white text-black font-semibold text-lg transition-all duration-300"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="relative z-10 flex items-center justify-center gap-3">
-                  Launch App
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </span>
-                <motion.div
-                  className="absolute inset-0 bg-[#a855f7]"
-                  initial={{ x: "-100%" }}
-                  whileHover={{ x: 0 }}
-                  transition={{ duration: 0.3 }}
-                />
-              </motion.button>
-            </Link>
-          </motion.div>
-        </div>
-      </section>
-
       {/* Footer */}
-      <footer className="py-8 border-t border-white/5">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-6 text-sm text-white/40">
-            <a href="https://memento.money" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
-              memento.money
-            </a>
-            <span>•</span>
-            <span>Powered by x402</span>
+      <footer className="py-12 border-t border-white/10 bg-black">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
+            <div className="flex items-center gap-6 text-sm text-white/40">
+              <a href="https://memento.money" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                memento.money
+              </a>
+              <span>•</span>
+              <span>Powered by x402</span>
+            </div>
+            <div className="flex items-center gap-6 text-sm text-white/40">
+              <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+              <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+              <Link href="/risk" className="hover:text-white transition-colors">Risk Disclosure</Link>
+            </div>
           </div>
-          <div className="text-sm text-white/40">
-            © 2025 Memento
+          <div className="text-center text-xs text-white/30">
+            © 2025 Memento. All rights reserved.
           </div>
         </div>
       </footer>
