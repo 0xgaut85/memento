@@ -101,19 +101,19 @@ app.get('/', (_req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Memento.money</title>
+  <title>Memento x402 Server</title>
   <meta name="description" content="A new global privacy focused standard for earning yield on stablecoins, on-chain and beyond.">
   
   <!-- Open Graph / Social Media -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://x402.memento.money/">
-  <meta property="og:title" content="Memento.money">
+  <meta property="og:title" content="Memento x402 Server">
   <meta property="og:description" content="A new global privacy focused standard for earning yield on stablecoins, on-chain and beyond.">
   <meta property="og:image" content="https://x402.memento.money/public/favicon.png">
   
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Memento.money">
+  <meta name="twitter:title" content="Memento x402 Server">
   <meta name="twitter:description" content="A new global privacy focused standard for earning yield on stablecoins, on-chain and beyond.">
   <meta name="twitter:image" content="https://x402.memento.money/public/favicon.png">
   
@@ -121,57 +121,182 @@ app.get('/', (_req, res) => {
   <link rel="icon" type="image/png" href="/public/favicon.png">
   <link rel="apple-touch-icon" href="/public/favicon.png">
   
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Manrope:wght@400;500;600;800&display=swap" rel="stylesheet">
+  
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    
     body { 
-      font-family: system-ui, -apple-system, sans-serif; 
-      background: #0a0a0a; 
-      color: #fff; 
+      font-family: 'Manrope', system-ui, -apple-system, sans-serif; 
+      background: #fafafa;
+      color: #0a0a0a; 
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 2rem;
+      position: relative;
+      overflow: hidden;
     }
-    .container { max-width: 600px; text-align: center; }
-    .logo { width: 80px; height: 80px; margin-bottom: 1.5rem; }
-    h1 { font-size: 2rem; margin-bottom: 0.5rem; }
-    .tagline { color: #888; font-size: 1.1rem; margin-bottom: 2rem; line-height: 1.6; }
-    .price { 
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      border: 1px solid #333;
-      border-radius: 12px;
-      padding: 1.5rem;
+    
+    /* Subtle grain texture */
+    body::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0.03;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E");
+    }
+    
+    .container { 
+      max-width: 480px; 
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .logo { 
+      width: 80px; 
+      height: 80px; 
       margin-bottom: 2rem;
     }
-    .price-amount { font-size: 2.5rem; font-weight: bold; color: #00d4aa; }
-    .price-label { color: #888; font-size: 0.9rem; margin-top: 0.25rem; }
-    .links { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
-    .links a { 
-      color: #00aaff; 
-      text-decoration: none; 
-      padding: 0.75rem 1.5rem;
-      border: 1px solid #00aaff;
-      border-radius: 8px;
-      transition: all 0.2s;
+    
+    .brand {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.25rem;
+      color: rgba(0,0,0,0.5);
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.02em;
     }
-    .links a:hover { background: #00aaff; color: #000; }
+    
+    h1 { 
+      font-size: 3.5rem; 
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 1rem;
+    }
+    
+    .tagline { 
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      color: rgba(0,0,0,0.5); 
+      font-size: 1.25rem; 
+      margin-bottom: 3rem; 
+      line-height: 1.5;
+    }
+    
+    .price-card { 
+      background: white;
+      border: 1px solid rgba(0,0,0,0.08);
+      padding: 2rem 2.5rem;
+      margin-bottom: 2.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    
+    .price-label-top {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: rgba(0,0,0,0.4);
+      margin-bottom: 0.75rem;
+    }
+    
+    .price-amount { 
+      font-size: 3rem; 
+      font-weight: 800; 
+      letter-spacing: -0.02em;
+      color: #a855f7;
+      margin-bottom: 0.5rem;
+    }
+    
+    .price-desc { 
+      color: rgba(0,0,0,0.5); 
+      font-size: 0.95rem;
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+    }
+    
+    .links { 
+      display: flex; 
+      gap: 1rem; 
+      justify-content: center; 
+      flex-wrap: wrap;
+    }
+    
+    .links a { 
+      color: #0a0a0a;
+      text-decoration: none; 
+      padding: 1rem 2rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .links a.primary {
+      background: #0a0a0a;
+      color: white;
+    }
+    
+    .links a.primary:hover {
+      background: #a855f7;
+    }
+    
+    .links a.secondary {
+      border: 1px solid rgba(0,0,0,0.15);
+      background: white;
+    }
+    
+    .links a.secondary:hover {
+      border-color: rgba(0,0,0,0.3);
+      background: rgba(0,0,0,0.02);
+    }
+    
+    .footer {
+      position: absolute;
+      bottom: 2rem;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 0.8rem;
+      color: rgba(0,0,0,0.3);
+    }
+    
+    .footer a {
+      color: rgba(0,0,0,0.4);
+      text-decoration: none;
+    }
+    
+    .footer a:hover {
+      color: rgba(0,0,0,0.7);
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <img src="/public/favicon.png" alt="Memento Logo" class="logo">
-    <h1>Memento x402</h1>
+    <p class="brand">memento.money</p>
+    <h1>x402 Server</h1>
     <p class="tagline">A new global privacy focused standard for earning yield on stablecoins, on-chain and beyond.</p>
-    <div class="price">
+    <div class="price-card">
+      <p class="price-label-top">Aggregator Access</p>
       <div class="price-amount">$5 USDC</div>
-      <div class="price-label">24-hour access to AI-curated yield opportunities</div>
+      <p class="price-desc">24-hour access to AI-curated yield opportunities</p>
     </div>
     <div class="links">
-      <a href="https://app.memento.money">Launch App</a>
-      <a href="/.well-known/x402">x402 Discovery</a>
+      <a href="https://app.memento.money" class="primary">Launch App</a>
+      <a href="/.well-known/x402" class="secondary">x402 Discovery</a>
     </div>
+  </div>
+  <div class="footer">
+    Powered by <a href="https://x402.org" target="_blank" rel="noopener">x402</a> • <a href="https://memento.money" target="_blank" rel="noopener">memento.money</a>
   </div>
 </body>
 </html>`);
