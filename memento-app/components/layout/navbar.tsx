@@ -67,8 +67,23 @@ export function Navbar() {
               })}
             </div>
 
-            {/* Connect Wallet Button */}
-            <div className="hidden md:block">
+            {/* Right side: x402 Server link + Wallet Button */}
+            <div className="hidden md:flex items-center gap-4">
+              <a
+                href="https://www.x402scan.com/server/e967cd67-2d0c-47dc-966c-2de04d17fa29"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/50 transition-colors"
+              >
+                <Image
+                  src="/x402.svg"
+                  alt="x402"
+                  width={16}
+                  height={16}
+                  className="w-4 h-4"
+                />
+                <span className="text-xs font-medium text-muted-foreground">x402 Server</span>
+              </a>
               <WalletButton />
             </div>
 
@@ -113,6 +128,21 @@ export function Navbar() {
                     </Link>
                   );
                 })}
+                <a
+                  href="https://www.x402scan.com/server/e967cd67-2d0c-47dc-966c-2de04d17fa29"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl hover:bg-white/50 transition-colors"
+                >
+                  <Image
+                    src="/x402.svg"
+                    alt="x402"
+                    width={16}
+                    height={16}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm font-medium text-muted-foreground">x402 Server</span>
+                </a>
                 <div className="mt-2 pt-2 border-t border-border/50">
                   <WalletButton />
                 </div>
