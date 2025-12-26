@@ -44,20 +44,20 @@ export function StatCard({
       transition={{ duration: 0.5, delay }}
       className="relative group"
     >
-      <div className="relative p-6 bg-white/60 backdrop-blur-sm border border-white/40 hover:border-white/60 transition-all duration-300">
+      <div className="relative p-6 bg-white/80 backdrop-blur-sm border border-black/5 hover:border-black/10 transition-all duration-300">
         {/* Subtle corner accent */}
         {accent && (
           <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-primary/10 to-transparent" />
         )}
         
-        <p className="text-xs font-medium tracking-[0.2em] uppercase text-foreground/40 mb-3">
+        <p className="text-xs font-semibold tracking-[0.2em] uppercase text-foreground/60 mb-3">
           {label}
         </p>
         <p className={`text-4xl md:text-5xl font-light tracking-tight ${accent ? 'text-primary' : 'text-foreground'}`}>
           {formatValue(value)}
         </p>
         {sublabel && (
-          <p className="text-sm text-foreground/50 mt-2 font-serif italic">
+          <p className="text-sm text-foreground/70 mt-2 font-serif italic">
             {sublabel}
           </p>
         )}

@@ -30,7 +30,7 @@ export default function AnalyticsPage() {
             className="text-center"
           >
             <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-sm text-foreground/40 font-serif italic">Loading analytics...</p>
+            <p className="text-sm text-foreground/60 font-serif italic">Loading analytics...</p>
           </motion.div>
         </div>
       </PageWrapper>
@@ -76,7 +76,7 @@ export default function AnalyticsPage() {
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="text-sm text-foreground/40 hover:text-foreground transition-colors disabled:opacity-50 self-start sm:self-end pb-1 border-b border-transparent hover:border-foreground/20"
+            className="text-sm text-foreground/60 hover:text-foreground transition-colors disabled:opacity-50 self-start sm:self-end pb-1 border-b border-transparent hover:border-foreground/30"
           >
             {isFetching ? 'Refreshing...' : 'Refresh data'}
           </button>
@@ -86,7 +86,7 @@ export default function AnalyticsPage() {
         <StatsGrid stats={stats} />
 
         {/* Activity & Breakdown */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-px bg-foreground/5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <ActivityCards activity={stats.activity} />
           <AccessTypeBreakdown breakdown={stats.breakdown} />
         </div>
@@ -101,16 +101,16 @@ export default function AnalyticsPage() {
           transition={{ delay: 0.8 }}
           className="pt-12 text-center"
         >
-          <p className="text-xs text-foreground/30 font-serif italic mb-6">
+          <p className="text-xs text-foreground/50 font-serif italic mb-6">
             Last updated {new Date(stats.generatedAt).toLocaleString()}
           </p>
           <a
             href="https://www.x402scan.com/server/e967cd67-2d0c-47dc-966c-2de04d17fa29"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-xs text-foreground/40 hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-2 text-xs text-foreground/60 hover:text-foreground transition-colors"
           >
-            <Image src="/x402.svg" alt="x402" width={14} height={14} className="opacity-50" />
+            <Image src="/x402.svg" alt="x402" width={14} height={14} className="opacity-70" />
             <span>View on x402scan</span>
           </a>
         </motion.div>
