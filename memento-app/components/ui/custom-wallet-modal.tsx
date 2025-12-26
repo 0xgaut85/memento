@@ -7,7 +7,6 @@
  * Wallet compatibility notes:
  * - Phantom: Lighthouse security update causes x402 issues
  * - Solflare: May modify transactions, causing verification failures
- * - Backpack: Recommended - works well with x402
  * - Privy: Embedded wallet option for seamless onboarding
  */
 
@@ -16,14 +15,11 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { usePrivy } from '@privy-io/react-auth';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Wallet, ExternalLink, AlertTriangle, CheckCircle, Mail } from 'lucide-react';
+import { X, Wallet, ExternalLink, AlertTriangle, Mail } from 'lucide-react';
 import Image from 'next/image';
 
 // Wallets with known x402 compatibility issues
 const PROBLEMATIC_WALLETS = ['Phantom', 'Solflare'];
-
-// Recommended wallets that work well with x402
-const RECOMMENDED_WALLETS = ['Backpack'];
 
 export function CustomWalletModal() {
   const { wallets, select, connecting } = useWallet();
@@ -71,17 +67,11 @@ export function CustomWalletModal() {
     });
   }, [wallets]);
 
-  // Sort wallets: recommended first, then normal, then problematic at the end
+  // Sort wallets: problematic at the end
   const sortedWallets = useMemo(() => {
     return [...detectedWallets].sort((a, b) => {
-      const aIsRecommended = RECOMMENDED_WALLETS.includes(a.adapter.name);
-      const bIsRecommended = RECOMMENDED_WALLETS.includes(b.adapter.name);
       const aIsProblematic = PROBLEMATIC_WALLETS.includes(a.adapter.name);
       const bIsProblematic = PROBLEMATIC_WALLETS.includes(b.adapter.name);
-
-      // Recommended wallets first
-      if (aIsRecommended && !bIsRecommended) return -1;
-      if (!aIsRecommended && bIsRecommended) return 1;
 
       // Problematic wallets last
       if (aIsProblematic && !bIsProblematic) return 1;
@@ -92,7 +82,6 @@ export function CustomWalletModal() {
   }, [detectedWallets]);
 
   const isProblematic = (name: string) => PROBLEMATIC_WALLETS.includes(name);
-  const isRecommended = (name: string) => RECOMMENDED_WALLETS.includes(name);
 
   return (
     <AnimatePresence>
@@ -150,7 +139,6 @@ export function CustomWalletModal() {
                 <div className="space-y-3">
                   {sortedWallets.map((wallet) => {
                     const problematic = isProblematic(wallet.adapter.name);
-                    const recommended = isRecommended(wallet.adapter.name);
 
                     return (
                       <motion.button
@@ -164,9 +152,7 @@ export function CustomWalletModal() {
                         <div className={`relative flex items-center gap-4 p-4 border transition-all duration-200 ${
                           problematic 
                             ? 'bg-red-50/50 border-red-100 hover:border-red-200' 
-                            : recommended
-                              ? 'bg-green-50/50 border-green-100 hover:border-green-200'
-                              : 'bg-gray-50 border-gray-100 hover:border-gray-200 hover:bg-gray-100/80'
+                            : 'bg-gray-50 border-gray-100 hover:border-gray-200 hover:bg-gray-100/80'
                         }`}>
                           {/* Wallet Icon */}
                           <div className="w-12 h-12 bg-white border border-gray-100 flex items-center justify-center overflow-hidden">
@@ -183,26 +169,14 @@ export function CustomWalletModal() {
 
                           {/* Wallet Info */}
                           <div className="flex-1 text-left">
-                            <div className="flex items-center gap-2">
-                              <p className="font-semibold text-foreground tracking-tight">
-                                {wallet.adapter.name}
-                              </p>
-                              {recommended && (
-                                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium">
-                                  Recommended
-                                </span>
-                              )}
-                            </div>
+                            <p className="font-semibold text-foreground tracking-tight">
+                              {wallet.adapter.name}
+                            </p>
                             <p className="text-sm text-foreground/50">
                               {problematic ? (
                                 <span className="text-red-600 flex items-center gap-1">
                                   <AlertTriangle className="w-3 h-3" />
                                   May have x402 issues
-                                </span>
-                              ) : recommended ? (
-                                <span className="text-green-600 flex items-center gap-1">
-                                  <CheckCircle className="w-3 h-3" />
-                                  Works with x402
                                 </span>
                               ) : (
                                 wallet.readyState === 'Installed' ? 'Detected' : 'Available'
