@@ -547,7 +547,15 @@ app.post('/aggregator/solana', async (req, res) => {
     try {
       const settlement = await x402.settlePayment(paymentHeader, originalRequirements);
       console.log('[x402] Settlement result:', JSON.stringify(settlement));
-      if (!settlement.success) {
+      
+      // Store the transaction signature in the database for x402scan tracking
+      if (settlement.success && settlement.transaction) {
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: { txSignature: settlement.transaction },
+        });
+        console.log('[x402] Stored txSignature:', settlement.transaction);
+      } else if (!settlement.success) {
         console.error('[x402] Settlement failed:', settlement.errorReason);
       }
     } catch (err) {
