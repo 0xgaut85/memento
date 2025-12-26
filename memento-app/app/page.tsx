@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
 
-const cyclingWords = ["cash", "stables", "savings", "yields", "liquidity"];
+const cyclingWords = ["cash", "stables", "savings", "liquidity"];
 
 const stablecoins = [
   { name: "USDC", logo: "/cryptologo/USDC.png" },
@@ -115,12 +115,12 @@ export default function Home() {
                   key={`${coin.name}-${i}`}
                   className="flex items-center gap-3 flex-shrink-0"
                 >
-                  <div className="w-10 h-10 relative rounded-full overflow-hidden bg-white/10 border border-white/20">
+                  <div className="w-10 h-10 relative">
                     <Image
                       src={coin.logo}
                       alt={coin.name}
                       fill
-                      className="object-cover p-1"
+                      className="object-contain"
                     />
                   </div>
                   <span className="text-white/60 font-medium">{coin.name}</span>
