@@ -14,8 +14,9 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { usePrivy } from '@privy-io/react-auth';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Wallet, ExternalLink, AlertTriangle, CheckCircle } from 'lucide-react';
+import { X, Wallet, ExternalLink, AlertTriangle, CheckCircle, Mail } from 'lucide-react';
 import Image from 'next/image';
 
 // Wallets with known x402 compatibility issues
@@ -27,6 +28,7 @@ const RECOMMENDED_WALLETS = ['Backpack'];
 export function CustomWalletModal() {
   const { wallets, select, connecting } = useWallet();
   const { visible, setVisible } = useWalletModal();
+  const { login: privyLogin, ready: privyReady, authenticated: privyAuthenticated } = usePrivy();
 
   // Close on escape
   useEffect(() => {
@@ -245,21 +247,39 @@ export function CustomWalletModal() {
                     <p className="text-xs text-foreground/40 mb-3 uppercase tracking-wider font-medium">
                       Or use an embedded wallet
                     </p>
-                    <a
-                      href="https://privy.io"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 hover:border-indigo-200 transition-all"
+                    <motion.button
+                      onClick={() => {
+                        if (privyReady && !privyAuthenticated) {
+                          privyLogin();
+                          setVisible(false);
+                        }
+                      }}
+                      disabled={!privyReady || connecting}
+                      className="w-full flex items-center gap-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 hover:border-indigo-200 transition-all disabled:opacity-50"
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
                     >
-                      <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
-                        P
+                      <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white">
+                        <Mail className="w-6 h-6" />
                       </div>
                       <div className="flex-1 text-left">
                         <p className="font-semibold text-foreground tracking-tight">Privy</p>
-                        <p className="text-sm text-foreground/50">Embedded wallet • Coming soon</p>
+                        <p className="text-sm text-foreground/50">Email, Google, or social login</p>
                       </div>
-                      <ExternalLink className="w-4 h-4 text-foreground/30" />
-                    </a>
+                      <svg
+                        className="w-5 h-5 text-foreground/30"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </motion.button>
                   </div>
                 </div>
               ) : (
