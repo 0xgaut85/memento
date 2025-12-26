@@ -583,6 +583,127 @@ app.post('/aggregator/solana', async (req, res) => {
   }
 });
 
+// Platform stats endpoint (public)
+app.get('/api/stats', async (_req, res) => {
+  try {
+    const now = new Date();
+    const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const last30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Parallel queries for efficiency
+    const [
+      totalUsers,
+      totalPayments,
+      totalRevenue,
+      activeAccess,
+      payments24h,
+      payments7d,
+      payments30d,
+      recentPayments,
+      paymentsByType,
+    ] = await Promise.all([
+      // Total unique users
+      prisma.user.count(),
+      // Total payments
+      prisma.payment.count({ where: { status: 'completed' } }),
+      // Total revenue
+      prisma.payment.aggregate({
+        where: { status: 'completed' },
+        _sum: { amountUsd: true },
+      }),
+      // Active access (not expired)
+      prisma.aggregatorAccess.count({
+        where: { active: true, expiresAt: { gt: now } },
+      }),
+      // Payments last 24h
+      prisma.payment.count({
+        where: { status: 'completed', createdAt: { gte: last24h } },
+      }),
+      // Payments last 7d
+      prisma.payment.count({
+        where: { status: 'completed', createdAt: { gte: last7d } },
+      }),
+      // Payments last 30d
+      prisma.payment.count({
+        where: { status: 'completed', createdAt: { gte: last30d } },
+      }),
+      // Recent payments (last 10)
+      prisma.payment.findMany({
+        where: { status: 'completed' },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          amountUsd: true,
+          accessType: true,
+          createdAt: true,
+          payerAddress: true,
+        },
+      }),
+      // Payments by access type
+      prisma.payment.groupBy({
+        by: ['accessType'],
+        where: { status: 'completed' },
+        _count: true,
+        _sum: { amountUsd: true },
+      }),
+    ]);
+
+    // Calculate revenue by period
+    const [revenue24h, revenue7d, revenue30d] = await Promise.all([
+      prisma.payment.aggregate({
+        where: { status: 'completed', createdAt: { gte: last24h } },
+        _sum: { amountUsd: true },
+      }),
+      prisma.payment.aggregate({
+        where: { status: 'completed', createdAt: { gte: last7d } },
+        _sum: { amountUsd: true },
+      }),
+      prisma.payment.aggregate({
+        where: { status: 'completed', createdAt: { gte: last30d } },
+        _sum: { amountUsd: true },
+      }),
+    ]);
+
+    return res.json({
+      overview: {
+        totalUsers,
+        totalPayments,
+        totalRevenue: totalRevenue._sum.amountUsd || 0,
+        activeAccess,
+        pricePerAccess: AGGREGATOR_PRICE_USD,
+      },
+      activity: {
+        payments24h,
+        payments7d,
+        payments30d,
+        revenue24h: revenue24h._sum.amountUsd || 0,
+        revenue7d: revenue7d._sum.amountUsd || 0,
+        revenue30d: revenue30d._sum.amountUsd || 0,
+      },
+      breakdown: {
+        byAccessType: paymentsByType.map((p) => ({
+          type: p.accessType,
+          count: p._count,
+          revenue: p._sum.amountUsd || 0,
+        })),
+      },
+      recentPayments: recentPayments.map((p) => ({
+        id: p.id,
+        amount: p.amountUsd,
+        type: p.accessType,
+        payer: p.payerAddress,
+        timestamp: p.createdAt.toISOString(),
+      })),
+      generatedAt: now.toISOString(),
+    });
+  } catch (error) {
+    console.error('[Stats] Error:', error);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
 // Access check endpoint
 app.get('/api/access/check', async (req, res) => {
   try {

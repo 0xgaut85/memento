@@ -14,6 +14,7 @@ const navLinks = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/aggregator", label: "Aggregator" },
   { href: "/alpha", label: "Alpha" },
+  { href: "/analytics", label: "Analytics" },
 ];
 
 export function Navbar() {
