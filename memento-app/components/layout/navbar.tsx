@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, X, BarChart3 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { WalletButton } from "@/components/ui/wallet-button";
@@ -14,7 +14,6 @@ const navLinks = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/aggregator", label: "Aggregator" },
   { href: "/alpha", label: "Alpha" },
-  { href: "/analytics", label: "Analytics" },
 ];
 
 export function Navbar() {
@@ -68,23 +67,39 @@ export function Navbar() {
               })}
             </div>
 
-            {/* Right side: x402 Server link + Wallet Button */}
-            <div className="hidden md:flex items-center gap-4">
-              <a
-                href="https://www.x402scan.com/server/e967cd67-2d0c-47dc-966c-2de04d17fa29"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/50 transition-colors"
-              >
-                <Image
-                  src="/x402.svg"
-                  alt="x402"
-                  width={16}
-                  height={16}
-                  className="w-4 h-4"
-                />
-                <span className="text-xs font-medium text-muted-foreground">x402 Server</span>
-              </a>
+            {/* Right side: Isolated section with Analytics + x402 + Wallet */}
+            <div className="hidden md:flex items-center gap-2">
+              {/* x402 Section - isolated pill */}
+              <div className="flex items-center gap-1 px-2 py-1 rounded-xl bg-black/5 border border-black/5">
+                <Link
+                  href="/analytics"
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                    pathname === "/analytics"
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/50"
+                  )}
+                >
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  <span>Analytics</span>
+                </Link>
+                <div className="w-px h-4 bg-black/10" />
+                <a
+                  href="https://www.x402scan.com/server/e967cd67-2d0c-47dc-966c-2de04d17fa29"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-white/50 transition-colors"
+                >
+                  <Image
+                    src="/x402.svg"
+                    alt="x402"
+                    width={14}
+                    height={14}
+                    className="w-3.5 h-3.5"
+                  />
+                  <span>x402</span>
+                </a>
+              </div>
               <WalletButton />
             </div>
 
@@ -129,21 +144,37 @@ export function Navbar() {
                     </Link>
                   );
                 })}
-                <a
-                  href="https://www.x402scan.com/server/e967cd67-2d0c-47dc-966c-2de04d17fa29"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-3 rounded-xl hover:bg-white/50 transition-colors"
-                >
-                  <Image
-                    src="/x402.svg"
-                    alt="x402"
-                    width={16}
-                    height={16}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm font-medium text-muted-foreground">x402 Server</span>
-                </a>
+                {/* x402 Section in mobile */}
+                <div className="mt-2 pt-2 border-t border-border/50">
+                  <Link
+                    href="/analytics"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-xl transition-colors",
+                      pathname === "/analytics"
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-white/50"
+                    )}
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    <span>Analytics</span>
+                  </Link>
+                  <a
+                    href="https://www.x402scan.com/server/e967cd67-2d0c-47dc-966c-2de04d17fa29"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-3 rounded-xl hover:bg-white/50 transition-colors"
+                  >
+                    <Image
+                      src="/x402.svg"
+                      alt="x402"
+                      width={16}
+                      height={16}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm font-medium text-muted-foreground">x402 Server</span>
+                  </a>
+                </div>
                 <div className="mt-2 pt-2 border-t border-border/50">
                   <WalletButton />
                 </div>

@@ -6,7 +6,7 @@
  */
 
 import { motion } from 'framer-motion';
-import { ExternalLink, User, Bot } from 'lucide-react';
+import { User, Bot } from 'lucide-react';
 import { GlassCard } from '@/components/ui/glass-card';
 import type { PlatformStats } from './types';
 
@@ -15,8 +15,14 @@ interface RecentPaymentsProps {
 }
 
 function formatAddress(address: string): string {
-  if (address.length <= 12) return address;
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  return `${address.slice(0, 4)}...`;
+}
+
+function formatService(service: string): string {
+  const services: Record<string, string> = {
+    aggregator: 'Aggregator',
+  };
+  return services[service] || service;
 }
 
 function formatTime(timestamp: string): string {
@@ -68,15 +74,12 @@ export function RecentPayments({ payments }: RecentPaymentsProps) {
                     )}
                   </div>
                   <div>
-                    <a
-                      href={`https://solscan.io/account/${payment.payer}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-mono text-sm hover:text-primary transition-colors flex items-center gap-1"
-                    >
-                      {formatAddress(payment.payer)}
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm">{formatAddress(payment.payer)}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                        {formatService(payment.service)}
+                      </span>
+                    </div>
                     <p className="text-xs text-muted-foreground capitalize">{payment.type} access</p>
                   </div>
                 </div>

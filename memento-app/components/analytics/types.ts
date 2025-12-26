@@ -30,6 +30,7 @@ export interface PlatformStats {
     id: string;
     amount: number;
     type: string;
+    service: string;
     payer: string;
     timestamp: string;
   }>;
