@@ -181,10 +181,10 @@ export function AccessGateContent({ children }: AccessGateContentProps) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
               
               {/* Left: Content */}
-              <motion.div
+          <motion.div
                 initial={{ opacity: 0, x: -40 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               >
                 <motion.a
                   href="https://memento.money"
@@ -194,46 +194,46 @@ export function AccessGateContent({ children }: AccessGateContentProps) {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                   className="inline-flex items-center gap-3 mb-8 group"
-                >
-                  <Image
-                    src="/transparentlogo.png"
-                    alt="Memento"
+            >
+              <Image
+                src="/transparentlogo.png"
+                alt="Memento"
                     width={48}
                     height={48}
                     className="w-12 h-12 invert"
-                  />
+              />
                   <span className="font-serif text-xl text-white/60 group-hover:text-white transition-colors">
                     memento.money
                   </span>
                 </motion.a>
 
-                <motion.h1
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
                   className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tighter leading-[0.95] mb-4"
-                >
+            >
                   Memento
                   <br />
                   <span className="font-serif italic font-normal text-white/40">Aggregator</span>
-                </motion.h1>
+            </motion.h1>
 
-                <motion.p
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
                   className="text-lg sm:text-xl text-white/50 mb-8 max-w-md"
-                >
+            >
                   Unlock the full yield aggregator with AI-curated opportunities across 100+ protocols.
-                </motion.p>
+            </motion.p>
 
                 {/* Features */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.5 }}
                   className="space-y-3 mb-8"
-                >
+            >
                   {[
                     'All yield opportunities',
                     'Safe & Degen filtering',
@@ -241,15 +241,15 @@ export function AccessGateContent({ children }: AccessGateContentProps) {
                     'AI-curated selection',
                   ].map((feature, i) => (
                     <div key={feature} className="flex items-center gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
                       <span className="text-white/70">{feature}</span>
-                    </div>
+                </div>
                   ))}
                 </motion.div>
-              </motion.div>
+            </motion.div>
 
               {/* Right: Payment Card */}
-              <motion.div
+            <motion.div
                 initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
@@ -267,7 +267,7 @@ export function AccessGateContent({ children }: AccessGateContentProps) {
                   </div>
 
                   {/* CTA Button */}
-                  {!isConnected ? (
+              {!isConnected ? (
                     <motion.button
                       onClick={() => setVisible(true)}
                       className="w-full group relative overflow-hidden text-lg px-8 py-5 bg-black text-white font-semibold transition-all duration-300 mb-6"
@@ -285,35 +285,35 @@ export function AccessGateContent({ children }: AccessGateContentProps) {
                         transition={{ duration: 0.3 }}
                       />
                     </motion.button>
-                  ) : (
+              ) : (
                     <div className="space-y-3 mb-6">
-                      <motion.button
-                        onClick={() => setShowPaymentModal(true)}
-                        disabled={isLoading}
+                <motion.button
+                  onClick={() => setShowPaymentModal(true)}
+                  disabled={isLoading}
                         className="w-full group relative overflow-hidden text-lg px-8 py-5 bg-black text-white font-semibold transition-all duration-300 disabled:opacity-50"
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.99 }}
-                      >
-                        <span className="relative z-10 flex items-center justify-center gap-3">
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="w-5 h-5 animate-spin" />
-                              Processing...
-                            </>
-                          ) : (
-                            <>
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-3">
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
                               Unlock Now
-                              <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
-                            </>
-                          )}
-                        </span>
-                        <motion.div
-                          className="absolute inset-0 bg-primary"
-                          initial={{ x: "-100%" }}
-                          whileHover={{ x: 0 }}
-                          transition={{ duration: 0.3 }}
-                        />
-                      </motion.button>
+                        <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
+                      </>
+                    )}
+                  </span>
+                  <motion.div
+                    className="absolute inset-0 bg-primary"
+                    initial={{ x: "-100%" }}
+                    whileHover={{ x: 0 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </motion.button>
                       
                       {/* Connected wallet info */}
                       <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100">
@@ -339,50 +339,50 @@ export function AccessGateContent({ children }: AccessGateContentProps) {
                         </button>
                       </div>
                     </div>
-                  )}
+              )}
 
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
                       className="mb-6 flex items-center justify-center gap-2 text-red-600 text-sm"
-                    >
-                      <AlertCircle className="w-4 h-4" />
-                      {error}
-                    </motion.div>
-                  )}
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  {error}
+                </motion.div>
+              )}
 
                   {/* Third-party wallet warning */}
                   <div className="p-4 bg-amber-50 border border-amber-100">
-                    <div className="flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                      <div className="text-sm">
-                        <p className="font-semibold text-amber-800 mb-1">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-semibold text-amber-800 mb-1">
                           Third-Party Wallet Compatibility
-                        </p>
-                        <p className="text-amber-700 mb-2">
+                  </p>
+                  <p className="text-amber-700 mb-2">
                           Some wallets (Phantom, Solflare) modify transactions for security, which may cause x402 payment issues. 
                           Use <span className="font-semibold">Backpack</span> for best results.
-                        </p>
-                        <a 
-                          href="https://github.com/coinbase/x402/issues/828" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
+                  </p>
+                    <a 
+                      href="https://github.com/coinbase/x402/issues/828" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800 underline"
-                        >
-                          View x402 Issue #828
+                    >
+                      View x402 Issue #828
                           <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </div>
-                    </div>
+                    </a>
                   </div>
+                </div>
+              </div>
 
                   {/* Footer */}
                   <p className="mt-6 text-center text-xs text-black/40">
-                    Powered by x402 protocol • Instant access after payment
+              Powered by x402 protocol • Instant access after payment
                   </p>
                 </div>
-              </motion.div>
+          </motion.div>
             </div>
           </div>
         </div>

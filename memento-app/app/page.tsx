@@ -115,12 +115,12 @@ export default function Home() {
                   key={`${coin.name}-${i}`}
                   className="flex items-center gap-3 flex-shrink-0"
                 >
-                  <div className="w-10 h-10 relative">
+                  <div className="w-10 h-10 relative rounded-full overflow-hidden bg-white/10">
                     <Image
                       src={coin.logo}
                       alt={coin.name}
                       fill
-                      className="object-contain"
+                      className="object-cover"
                     />
                   </div>
                   <span className="text-white/60 font-medium">{coin.name}</span>
