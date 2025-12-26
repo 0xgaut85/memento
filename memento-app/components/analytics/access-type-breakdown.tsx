@@ -2,12 +2,10 @@
 
 /**
  * AccessTypeBreakdown Component
- * Shows breakdown of payments by access type (human vs agent)
+ * Premium breakdown of payments by access type
  */
 
 import { motion } from 'framer-motion';
-import { User, Bot } from 'lucide-react';
-import { GlassCard } from '@/components/ui/glass-card';
 import type { PlatformStats } from './types';
 
 interface AccessTypeBreakdownProps {
@@ -18,63 +16,67 @@ export function AccessTypeBreakdown({ breakdown }: AccessTypeBreakdownProps) {
   const { byAccessType } = breakdown;
   
   const totalCount = byAccessType.reduce((sum, t) => sum + t.count, 0);
-  const totalRevenue = byAccessType.reduce((sum, t) => sum + t.revenue, 0);
-
-  const getIcon = (type: string) => {
-    return type === 'agent' ? Bot : User;
-  };
 
   const getLabel = (type: string) => {
-    return type === 'agent' ? 'AI Agents' : 'Human Users';
+    return type === 'agent' ? 'AI Agents' : 'Humans';
+  };
+
+  const getDescription = (type: string) => {
+    return type === 'agent' ? 'programmatic access' : 'dashboard users';
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: 0.5 }}
+      transition={{ duration: 0.5, delay: 0.5 }}
+      className="bg-white/60 backdrop-blur-sm border border-white/40 p-8"
     >
-      <GlassCard>
-        <h3 className="text-lg font-semibold mb-4">Access Type Breakdown</h3>
-        {byAccessType.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">No payments yet</p>
-        ) : (
-          <div className="space-y-4">
-            {byAccessType.map((item) => {
-              const Icon = getIcon(item.type);
-              const percentage = totalCount > 0 ? (item.count / totalCount) * 100 : 0;
-              
-              return (
-                <div key={item.type} className="flex items-center gap-4">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Icon className="w-5 h-5 text-primary" />
+      <p className="text-xs font-medium tracking-[0.2em] uppercase text-foreground/40 mb-6">
+        Access Types
+      </p>
+      
+      {byAccessType.length === 0 ? (
+        <p className="text-foreground/40 font-serif italic py-8 text-center">
+          No payments recorded yet
+        </p>
+      ) : (
+        <div className="space-y-6">
+          {byAccessType.map((item) => {
+            const percentage = totalCount > 0 ? (item.count / totalCount) * 100 : 0;
+            
+            return (
+              <div key={item.type}>
+                <div className="flex items-baseline justify-between mb-3">
+                  <div>
+                    <span className="text-lg font-medium">{getLabel(item.type)}</span>
+                    <span className="text-sm text-foreground/40 ml-2 font-serif italic">
+                      {getDescription(item.type)}
+                    </span>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium">{getLabel(item.type)}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {item.count} ({percentage.toFixed(1)}%)
-                      </span>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <motion.div
-                        className="h-full bg-primary rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${percentage}%` }}
-                        transition={{ duration: 0.8, delay: 0.6 }}
-                      />
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      ${item.revenue.toLocaleString('en-US', { minimumFractionDigits: 2 })} revenue
-                    </p>
-                  </div>
+                  <span className="text-sm text-foreground/60">
+                    {item.count} <span className="text-foreground/30">({percentage.toFixed(0)}%)</span>
+                  </span>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </GlassCard>
+                
+                {/* Progress bar */}
+                <div className="h-1 bg-foreground/5 overflow-hidden">
+                  <motion.div
+                    className={`h-full ${item.type === 'agent' ? 'bg-foreground/20' : 'bg-primary/60'}`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${percentage}%` }}
+                    transition={{ duration: 0.8, delay: 0.6 }}
+                  />
+                </div>
+                
+                <p className="text-right text-sm text-foreground/50 mt-2">
+                  ${item.revenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </motion.div>
   );
 }
-

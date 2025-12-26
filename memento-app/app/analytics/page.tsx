@@ -6,7 +6,6 @@
  */
 
 import { motion } from 'framer-motion';
-import { RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { PageWrapper } from '@/components/layout/page-wrapper';
@@ -26,10 +25,12 @@ export default function AnalyticsPage() {
       <PageWrapper>
         <div className="flex items-center justify-center min-h-[60vh]">
           <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center"
           >
-            <RefreshCw className="w-8 h-8 text-primary" />
+            <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-sm text-foreground/40 font-serif italic">Loading analytics...</p>
           </motion.div>
         </div>
       </PageWrapper>
@@ -41,10 +42,10 @@ export default function AnalyticsPage() {
       <PageWrapper>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Failed to load analytics</h1>
+            <h1 className="text-2xl font-light mb-4">Failed to load analytics</h1>
             <button
               onClick={() => refetch()}
-              className="px-6 py-3 bg-primary text-white font-medium hover:bg-primary/90 transition-colors"
+              className="px-8 py-3 bg-foreground text-white text-sm font-medium tracking-wide hover:bg-primary transition-colors"
             >
               Retry
             </button>
@@ -56,32 +57,28 @@ export default function AnalyticsPage() {
 
   return (
     <PageWrapper>
-      <div className="space-y-8">
+      <div className="space-y-12">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pb-8 border-b border-foreground/10"
         >
           <div>
-            <p className="text-sm font-medium text-primary tracking-wide uppercase mb-1">
+            <p className="text-xs font-medium tracking-[0.3em] uppercase text-primary mb-4">
               Platform Analytics
             </p>
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-              Revenue{' '}
-              <span className="font-serif italic font-normal text-black/40">Dashboard</span>
+            <h1 className="text-5xl md:text-6xl font-light tracking-tight leading-none">
+              Revenue
+              <span className="font-serif italic text-foreground/30 ml-3">Dashboard</span>
             </h1>
-            <p className="text-muted-foreground mt-2 font-serif italic">
-              Real-time insights into x402 payments and platform usage
-            </p>
           </div>
           <button
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/60 hover:bg-white/80 border border-white/30 transition-colors disabled:opacity-50 self-start"
+            className="text-sm text-foreground/40 hover:text-foreground transition-colors disabled:opacity-50 self-start sm:self-end pb-1 border-b border-transparent hover:border-foreground/20"
           >
-            <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-            <span className="text-sm font-medium">Refresh</span>
+            {isFetching ? 'Refreshing...' : 'Refresh data'}
           </button>
         </motion.div>
 
@@ -89,7 +86,7 @@ export default function AnalyticsPage() {
         <StatsGrid stats={stats} />
 
         {/* Activity & Breakdown */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-px bg-foreground/5">
           <ActivityCards activity={stats.activity} />
           <AccessTypeBreakdown breakdown={stats.breakdown} />
         </div>
@@ -102,22 +99,20 @@ export default function AnalyticsPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
-          className="pt-8 text-center border-t border-border/30"
+          className="pt-12 text-center"
         >
-          <p className="text-sm text-muted-foreground">
-            Last updated: {new Date(stats.generatedAt).toLocaleString()}
+          <p className="text-xs text-foreground/30 font-serif italic mb-6">
+            Last updated {new Date(stats.generatedAt).toLocaleString()}
           </p>
-          <div className="mt-4 flex items-center justify-center gap-6">
-            <a
-              href="https://www.x402scan.com/server/e967cd67-2d0c-47dc-966c-2de04d17fa29"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Image src="/x402.svg" alt="x402" width={16} height={16} className="w-4 h-4" />
-              View on x402scan
-            </a>
-          </div>
+          <a
+            href="https://www.x402scan.com/server/e967cd67-2d0c-47dc-966c-2de04d17fa29"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-xs text-foreground/40 hover:text-foreground transition-colors"
+          >
+            <Image src="/x402.svg" alt="x402" width={14} height={14} className="opacity-50" />
+            <span>View on x402scan</span>
+          </a>
         </motion.div>
       </div>
     </PageWrapper>

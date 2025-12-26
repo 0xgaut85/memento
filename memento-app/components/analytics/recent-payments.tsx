@@ -2,12 +2,10 @@
 
 /**
  * RecentPayments Component
- * Shows a list of recent x402 payments
+ * Premium list of recent x402 payments
  */
 
 import { motion } from 'framer-motion';
-import { User, Bot } from 'lucide-react';
-import { GlassCard } from '@/components/ui/glass-card';
 import type { PlatformStats } from './types';
 
 interface RecentPaymentsProps {
@@ -45,54 +43,70 @@ export function RecentPayments({ payments }: RecentPaymentsProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: 0.6 }}
+      transition={{ duration: 0.5, delay: 0.6 }}
+      className="bg-white/60 backdrop-blur-sm border border-white/40 p-8"
     >
-      <GlassCard>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Recent Payments</h3>
-          <span className="text-sm text-muted-foreground">Last 10</span>
-        </div>
-        
-        {payments.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">No payments yet</p>
-        ) : (
-          <div className="space-y-3">
-            {payments.map((payment, i) => (
-              <motion.div
-                key={payment.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 0.7 + i * 0.05 }}
-                className="flex items-center justify-between p-3 rounded-xl bg-white/30 hover:bg-white/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${payment.type === 'agent' ? 'bg-blue-100' : 'bg-purple-100'}`}>
-                    {payment.type === 'agent' ? (
-                      <Bot className="w-4 h-4 text-blue-600" />
-                    ) : (
-                      <User className="w-4 h-4 text-purple-600" />
-                    )}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-sm">{formatAddress(payment.payer)}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                        {formatService(payment.service)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground capitalize">{payment.type} access</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold">${payment.amount.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">{formatTime(payment.timestamp)}</p>
-                </div>
-              </motion.div>
-            ))}
+      <div className="flex items-baseline justify-between mb-6">
+        <p className="text-xs font-medium tracking-[0.2em] uppercase text-foreground/40">
+          Recent Payments
+        </p>
+        <span className="text-xs text-foreground/30 font-serif italic">last 10</span>
+      </div>
+      
+      {payments.length === 0 ? (
+        <p className="text-foreground/40 font-serif italic py-12 text-center">
+          No payments recorded yet
+        </p>
+      ) : (
+        <div className="space-y-0">
+          {/* Header */}
+          <div className="grid grid-cols-12 gap-4 pb-3 border-b border-foreground/10 text-xs text-foreground/40 uppercase tracking-wider">
+            <div className="col-span-3">Wallet</div>
+            <div className="col-span-3">Service</div>
+            <div className="col-span-2">Type</div>
+            <div className="col-span-2 text-right">Amount</div>
+            <div className="col-span-2 text-right">Time</div>
           </div>
-        )}
-      </GlassCard>
+          
+          {payments.map((payment, i) => (
+            <motion.div
+              key={payment.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3, delay: 0.7 + i * 0.03 }}
+              className="grid grid-cols-12 gap-4 py-4 border-b border-foreground/5 hover:bg-white/30 transition-colors -mx-8 px-8"
+            >
+              <div className="col-span-3">
+                <span className="font-mono text-sm text-foreground/70">
+                  {formatAddress(payment.payer)}
+                </span>
+              </div>
+              <div className="col-span-3">
+                <span className="text-sm text-foreground/60">
+                  {formatService(payment.service)}
+                </span>
+              </div>
+              <div className="col-span-2">
+                <span className={`text-xs px-2 py-1 ${
+                  payment.type === 'agent' 
+                    ? 'bg-foreground/5 text-foreground/50' 
+                    : 'bg-primary/10 text-primary'
+                }`}>
+                  {payment.type}
+                </span>
+              </div>
+              <div className="col-span-2 text-right">
+                <span className="font-medium">${payment.amount.toFixed(2)}</span>
+              </div>
+              <div className="col-span-2 text-right">
+                <span className="text-sm text-foreground/40 font-serif italic">
+                  {formatTime(payment.timestamp)}
+                </span>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </motion.div>
   );
 }
-

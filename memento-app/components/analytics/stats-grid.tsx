@@ -2,10 +2,9 @@
 
 /**
  * StatsGrid Component
- * Displays overview statistics in a responsive grid
+ * Premium overview statistics grid
  */
 
-import { Users, CreditCard, DollarSign, Zap } from 'lucide-react';
 import { StatCard } from './stat-card';
 import type { PlatformStats } from './types';
 
@@ -17,34 +16,33 @@ export function StatsGrid({ stats }: StatsGridProps) {
   const { overview, activity } = stats;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-foreground/5">
       <StatCard
         label="Total Users"
         value={overview.totalUsers}
-        icon={Users}
+        sublabel="registered wallets"
         delay={0}
       />
       <StatCard
-        label="Total Payments"
+        label="Payments"
         value={overview.totalPayments}
-        icon={CreditCard}
-        trend={activity.payments24h > 0 ? { value: activity.payments24h, label: 'today' } : undefined}
+        sublabel={activity.payments24h > 0 ? `+${activity.payments24h} today` : 'all time'}
         delay={0.1}
       />
       <StatCard
-        label="Total Revenue"
+        label="Revenue"
         value={overview.totalRevenue}
-        icon={DollarSign}
         format="currency"
+        sublabel="total earned"
         delay={0.2}
+        accent
       />
       <StatCard
         label="Active Access"
         value={overview.activeAccess}
-        icon={Zap}
+        sublabel="current subscriptions"
         delay={0.3}
       />
     </div>
   );
 }
-

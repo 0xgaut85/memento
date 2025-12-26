@@ -2,32 +2,27 @@
 
 /**
  * StatCard Component
- * Displays a single statistic with label and optional trend
+ * Premium stat display with elegant typography
  */
 
 import { motion } from 'framer-motion';
-import { LucideIcon } from 'lucide-react';
-import { GlassCard } from '@/components/ui/glass-card';
 
 interface StatCardProps {
   label: string;
   value: string | number;
-  icon?: LucideIcon;
-  trend?: {
-    value: number;
-    label: string;
-  };
+  sublabel?: string;
   format?: 'number' | 'currency' | 'percentage';
   delay?: number;
+  accent?: boolean;
 }
 
 export function StatCard({
   label,
   value,
-  icon: Icon,
-  trend,
+  sublabel,
   format = 'number',
   delay = 0,
+  accent = false,
 }: StatCardProps) {
   const formatValue = (val: string | number): string => {
     if (typeof val === 'string') return val;
@@ -46,27 +41,27 @@ export function StatCard({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay }}
+      transition={{ duration: 0.5, delay }}
+      className="relative group"
     >
-      <GlassCard className="h-full">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-muted-foreground mb-1">{label}</p>
-            <p className="text-3xl font-bold tracking-tight">{formatValue(value)}</p>
-            {trend && (
-              <p className={`text-sm mt-2 ${trend.value >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {trend.value >= 0 ? '+' : ''}{trend.value}% {trend.label}
-              </p>
-            )}
-          </div>
-          {Icon && (
-            <div className="p-3 rounded-xl bg-primary/10">
-              <Icon className="w-5 h-5 text-primary" />
-            </div>
-          )}
-        </div>
-      </GlassCard>
+      <div className="relative p-6 bg-white/60 backdrop-blur-sm border border-white/40 hover:border-white/60 transition-all duration-300">
+        {/* Subtle corner accent */}
+        {accent && (
+          <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-primary/10 to-transparent" />
+        )}
+        
+        <p className="text-xs font-medium tracking-[0.2em] uppercase text-foreground/40 mb-3">
+          {label}
+        </p>
+        <p className={`text-4xl md:text-5xl font-light tracking-tight ${accent ? 'text-primary' : 'text-foreground'}`}>
+          {formatValue(value)}
+        </p>
+        {sublabel && (
+          <p className="text-sm text-foreground/50 mt-2 font-serif italic">
+            {sublabel}
+          </p>
+        )}
+      </div>
     </motion.div>
   );
 }
-
