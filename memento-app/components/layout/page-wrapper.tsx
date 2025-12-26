@@ -8,6 +8,9 @@ interface PageWrapperProps {
   className?: string;
 }
 
+/**
+ * PageWrapper - Provides consistent page layout with animations
+ */
 export function PageWrapper({ children, className }: PageWrapperProps) {
   return (
     <motion.main
@@ -25,4 +28,3 @@ export function PageWrapper({ children, className }: PageWrapperProps) {
     </motion.main>
   );
 }
-
