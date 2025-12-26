@@ -2,19 +2,20 @@
 
 /**
  * PrivyProvider - Privy Embedded Wallet Integration
+ * 
+ * Privy is used ONLY for email/social login, which creates an embedded Solana wallet.
+ * External wallets (Phantom, Backpack, etc.) use the Solana Wallet Adapter directly
+ * to avoid cross-origin issues with Privy's auth modal.
+ * 
  * Official docs: https://docs.privy.io/recipes/solana/getting-started-with-privy-and-solana
  */
 
 import { ReactNode } from 'react';
 import { PrivyProvider as PrivyProviderBase } from '@privy-io/react-auth';
-import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
 import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit';
 
 // Privy App ID from environment variable
 const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID || '';
-
-// Initialize Solana wallet connectors for external wallet detection
-const solanaConnectors = toSolanaWalletConnectors();
 
 // Solana RPC configuration - required for embedded wallet transactions
 const SOLANA_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
@@ -48,18 +49,12 @@ export function PrivyWalletProvider({ children }: PrivyWalletProviderProps) {
           theme: 'light',
           accentColor: '#a855f7', // Purple accent to match Memento
           logo: '/transparentlogo.png',
-          walletChainType: 'solana-only', // Only show Solana wallets
-          showWalletLoginFirst: true, // Show wallet options first
+          walletChainType: 'solana-only', // Only show Solana options
         },
-        // Login methods - wallet and email
-        loginMethods: ['wallet', 'email'],
-        // External wallet connectors for proper Solana wallet detection
-        externalWallets: {
-          solana: {
-            connectors: solanaConnectors,
-          },
-        },
-        // Embedded wallet config - create for users without wallets
+        // Login methods - ONLY email/social through Privy
+        // External wallets (Phantom, Backpack) use Solana Wallet Adapter directly
+        loginMethods: ['email'],
+        // Embedded wallet config - create Solana wallet for email users
         embeddedWallets: {
           solana: {
             createOnLogin: 'all-users',
