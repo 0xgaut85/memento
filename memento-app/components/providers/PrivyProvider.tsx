@@ -31,18 +31,11 @@ export function PrivyWalletProvider({ children }: PrivyWalletProviderProps) {
           accentColor: '#a855f7', // Purple accent to match Memento
           logo: '/transparentlogo.png',
         },
-        // Login methods - email, social, and wallet
-        loginMethods: ['email', 'wallet', 'google'],
-        // Solana configuration
-        solanaClusters: [
-          {
-            name: 'mainnet-beta',
-            rpcUrl: process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=a9590b4c-8a59-4b03-93b2-799e49bb5c0f',
-          },
-        ],
         // Embedded wallet config - create for users without wallets
         embeddedWallets: {
-          createOnLogin: 'users-without-wallets',
+          solana: {
+            createOnLogin: 'users-without-wallets',
+          },
         },
       }}
     >
@@ -50,4 +43,3 @@ export function PrivyWalletProvider({ children }: PrivyWalletProviderProps) {
     </PrivyProviderBase>
   );
 }
-
