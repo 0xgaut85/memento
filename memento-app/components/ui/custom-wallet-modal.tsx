@@ -227,9 +227,18 @@ export function CustomWalletModal() {
                       <p className="text-xs font-semibold text-amber-800 mb-1">
                         Third-Party Wallet Compatibility
                       </p>
-                      <p className="text-xs text-amber-700">
+                      <p className="text-xs text-amber-700 mb-2">
                         Some wallets (Phantom, Solflare) modify transactions for security, which may cause x402 payment issues. Use Backpack or Metamask in the meantime.
                       </p>
+                      <a 
+                        href="https://github.com/coinbase/x402/issues/828" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800 underline"
+                      >
+                        View x402 Issue #828
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
                     </div>
                   </div>
                 </div>
