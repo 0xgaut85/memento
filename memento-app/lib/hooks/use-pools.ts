@@ -46,8 +46,6 @@ export function usePools(): UsePoolsReturn {
         fetchJupiterLendPools(),
       ]);
       
-      console.log(`[Pools] DefiLlama: ${defiLlamaPools.length}, Jupiter Lend: ${jupiterLendPools.length}`);
-      
       // Merge pools (Jupiter Lend first for visibility)
       setAllPools([...jupiterLendPools, ...defiLlamaPools]);
     } catch (err) {

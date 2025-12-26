@@ -47,8 +47,7 @@ function WalletButtonInner() {
       try {
         await new Promise(resolve => setTimeout(resolve, 100));
         await wallet.adapter.connect();
-      } catch (error: unknown) {
-        console.warn('[WalletButton] Connection error, will retry:', error);
+      } catch {
         select(null);
         setTimeout(() => setVisible(true), 300);
       } finally {
@@ -61,8 +60,8 @@ function WalletButtonInner() {
   const handleDisconnect = useCallback(async () => {
     try {
       await disconnect();
-    } catch (error) {
-      console.warn('[WalletButton] Disconnect error:', error);
+    } catch {
+      // Ignore disconnect errors
     }
   }, [disconnect]);
 

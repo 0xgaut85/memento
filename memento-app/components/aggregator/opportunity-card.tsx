@@ -69,8 +69,8 @@ export function OpportunityCard({ pool, index = 0, rank }: OpportunityCardProps)
           const data = await fetchPoolChart(pool.pool);
           setChartData(data);
         }
-      } catch (err) {
-        console.error("Failed to load chart:", err);
+      } catch {
+        // Chart loading failed silently
       } finally {
         setIsLoadingChart(false);
         setHasLoadedChart(true);

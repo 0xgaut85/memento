@@ -52,17 +52,10 @@ export async function fetchJupiterLendPools(): Promise<Pool[]> {
     });
 
     if (!response.ok) {
-      console.error("[Jupiter Lend] API error:", response.status, response.statusText);
       return [];
     }
 
     const tokens: JupiterLendToken[] = await response.json();
-    
-    console.log("[Jupiter Lend] Fetched tokens:", tokens.map(t => ({
-      symbol: t.asset.symbol,
-      totalRate: t.totalRate,
-      totalAssets: t.totalAssets,
-    })));
 
     // Filter for stablecoins and convert to Pool format
     const pools = tokens
@@ -98,15 +91,8 @@ export async function fetchJupiterLendPools(): Promise<Pool[]> {
         } as Pool;
       });
 
-    console.log("[Jupiter Lend] Stablecoin pools:", pools.map(p => ({
-      symbol: p.symbol,
-      apy: p.apy.toFixed(2) + "%",
-      tvl: "$" + (p.tvlUsd / 1_000_000).toFixed(2) + "M",
-    })));
-
     return pools;
-  } catch (error) {
-    console.error("[Jupiter Lend] Failed to fetch:", error);
+  } catch {
     return [];
   }
 }

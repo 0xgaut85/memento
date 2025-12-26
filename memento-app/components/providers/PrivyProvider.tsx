@@ -27,7 +27,6 @@ interface PrivyWalletProviderProps {
 
 export function PrivyWalletProvider({ children }: PrivyWalletProviderProps) {
   if (!PRIVY_APP_ID) {
-    console.warn('[Privy] No PRIVY_APP_ID configured - Privy login will be disabled');
     return <>{children}</>;
   }
 

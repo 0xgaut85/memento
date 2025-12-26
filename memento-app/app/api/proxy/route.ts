@@ -13,12 +13,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'url and method required' }, { status: 400 });
     }
 
-    // Check for payment header - v1 uses X-PAYMENT
-    const paymentHeader = headers?.['X-PAYMENT'] || headers?.['x-payment'];
-    console.log('[Proxy] Request:', method, url);
-    console.log('[Proxy] Has X-PAYMENT:', !!paymentHeader, paymentHeader ? `(${paymentHeader.length} chars)` : '');
-    console.log('[Proxy] All header keys:', JSON.stringify(Object.keys(headers || {})));
-
     // Prepare headers - preserve x402 payment headers
     const requestHeaders: Record<string, string> = {
       'Content-Type': headers?.['Content-Type'] || 'application/json',
@@ -41,7 +35,6 @@ export async function POST(req: NextRequest) {
       delete requestHeaders['X-PAYMENT'];
       // Use lowercase only - Express normalizes to lowercase anyway
       requestHeaders['x-payment'] = paymentValue;
-      console.log('[Proxy] Forwarding x-payment:', paymentValue.length, 'chars');
     }
 
     // Remove problematic headers
@@ -58,9 +51,7 @@ export async function POST(req: NextRequest) {
       fetchOptions.body = typeof body === 'string' ? body : JSON.stringify(body);
     }
 
-    console.log('[Proxy] Sending to:', url);
     const response = await fetch(url, fetchOptions);
-    console.log('[Proxy] Response status:', response.status);
 
     // Parse response
     const contentType = response.headers.get('content-type') || '';
@@ -68,10 +59,8 @@ export async function POST(req: NextRequest) {
 
     if (contentType.includes('application/json')) {
       responseData = await response.json();
-      console.log('[Proxy] Response data:', JSON.stringify(responseData).substring(0, 300));
     } else {
       responseData = await response.text();
-      console.log('[Proxy] Response text:', String(responseData).substring(0, 300));
     }
 
     // Prepare response headers
@@ -94,7 +83,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[Proxy] Error:', message);
+    console.error('[x402 Proxy] Error:', message);
     return NextResponse.json({
       error: 'Proxy request failed',
       details: message

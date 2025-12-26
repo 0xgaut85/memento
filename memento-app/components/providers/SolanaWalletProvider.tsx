@@ -51,8 +51,9 @@ export function SolanaWalletProvider({ children }: SolanaWalletProviderProps) {
       error.message?.toLowerCase().includes(msg.toLowerCase())
     );
     
-    if (!isExpectedError) {
-      console.warn('[Wallet Warning]', error.name, error.message);
+    // Only log unexpected errors in development
+    if (!isExpectedError && process.env.NODE_ENV === 'development') {
+      console.warn('[Wallet]', error.name, error.message);
     }
   }, []);
 

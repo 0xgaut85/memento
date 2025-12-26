@@ -85,7 +85,6 @@ export async function fetchPoolChart(poolId: string): Promise<PoolChartData[]> {
     });
 
     if (!response.ok) {
-      console.warn(`[DefiLlama] Chart API returned ${response.status} for ${poolId}`);
       return [];
     }
 
@@ -96,8 +95,7 @@ export async function fetchPoolChart(poolId: string): Promise<PoolChartData[]> {
     }
 
     return data.data;
-  } catch (error) {
-    console.warn(`[DefiLlama] Chart fetch failed for ${poolId}:`, error);
+  } catch {
     return [];
   }
 }
@@ -237,8 +235,6 @@ export function getTopStablecoinPools(pools: Pool[], mode: PoolMode = "safe", li
     .sort((a, b) => b.apy - a.apy)
     // Take top N
     .slice(0, limit);
-  
-  console.log(`[DefiLlama] Mode: ${mode}, MinTVL: $${(minTvl / 1_000_000).toFixed(1)}M, Total: ${pools.length}, Filtered: ${filtered.length}`);
   
   return filtered;
 }
