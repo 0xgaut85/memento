@@ -1,0 +1,4 @@
+{
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':!memento-app' ':!x402-server' ':!temp-x402-react' ':!temp-x402-solana'"
+}
+
