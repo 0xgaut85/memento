@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Wallet, ExternalLink, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
@@ -19,7 +20,14 @@ import Image from 'next/image';
 // Wallets with known x402 compatibility issues
 const PROBLEMATIC_WALLETS = ['Phantom', 'Solflare'];
 
+// Pages that don't use x402 (no need to show warnings)
+const NON_X402_PATHS = ['/vaults', '/dashboard'];
+
 export function CustomWalletModal() {
+  const pathname = usePathname();
+  
+  // Check if current page uses x402
+  const showX402Warnings = !NON_X402_PATHS.some(path => pathname?.startsWith(path));
   const { wallets, select, connecting } = useWallet();
   const { visible, setVisible } = useWalletModal();
 
@@ -72,8 +80,11 @@ export function CustomWalletModal() {
     });
   }, [wallets]);
 
-  // Sort wallets: problematic at the end
+  // Sort wallets: problematic at the end (only if showing x402 warnings)
   const sortedWallets = useMemo(() => {
+    if (!showX402Warnings) {
+      return detectedWallets;
+    }
     return [...detectedWallets].sort((a, b) => {
       const aIsProblematic = PROBLEMATIC_WALLETS.includes(a.adapter.name);
       const bIsProblematic = PROBLEMATIC_WALLETS.includes(b.adapter.name);
@@ -84,9 +95,9 @@ export function CustomWalletModal() {
 
       return 0;
     });
-  }, [detectedWallets]);
+  }, [detectedWallets, showX402Warnings]);
 
-  const isProblematic = (name: string) => PROBLEMATIC_WALLETS.includes(name);
+  const isProblematic = (name: string) => showX402Warnings && PROBLEMATIC_WALLETS.includes(name);
 
   return (
     <AnimatePresence>
@@ -221,26 +232,28 @@ export function CustomWalletModal() {
                     );
                   })}
 
-                  {/* Compatibility notice */}
-                  <div className="pt-4 border-t border-gray-100">
-                    <div className="p-4 bg-amber-50 border border-amber-100 rounded-lg">
-                      <p className="text-xs font-semibold text-amber-800 mb-1">
-                        Third-Party Wallet Compatibility
-                      </p>
-                      <p className="text-xs text-amber-700 mb-2">
-                        Some wallets (Phantom, Solflare) modify transactions for security, which may cause x402 payment issues. Use Backpack or Metamask in the meantime.
-                      </p>
-                      <a 
-                        href="https://github.com/coinbase/x402/issues/828" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800 underline"
-                      >
-                        View x402 Issue #828
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+                  {/* Compatibility notice - only for x402 pages */}
+                  {showX402Warnings && (
+                    <div className="pt-4 border-t border-gray-100">
+                      <div className="p-4 bg-amber-50 border border-amber-100 rounded-lg">
+                        <p className="text-xs font-semibold text-amber-800 mb-1">
+                          Third-Party Wallet Compatibility
+                        </p>
+                        <p className="text-xs text-amber-700 mb-2">
+                          Some wallets (Phantom, Solflare) modify transactions for security, which may cause x402 payment issues. Use Backpack or Metamask in the meantime.
+                        </p>
+                        <a 
+                          href="https://github.com/coinbase/x402/issues/828" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-800 underline"
+                        >
+                          View x402 Issue #828
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -258,7 +271,7 @@ export function CustomWalletModal() {
             {/* Footer */}
             <div className="px-8 py-5 bg-gray-50 border-t border-gray-100">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-foreground/40">Powered by x402</span>
+                <span className="text-foreground/40">{showX402Warnings ? 'Powered by x402' : 'Memento Vaults'}</span>
                 <a
                   href="https://solana.com/ecosystem/explore?categories=wallet"
                   target="_blank"
