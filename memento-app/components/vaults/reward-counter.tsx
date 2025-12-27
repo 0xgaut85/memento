@@ -23,7 +23,7 @@ export function RewardCounter({
   size = "md",
 }: RewardCounterProps) {
   const [pendingRewards, setPendingRewards] = useState(0);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     const calculateRewards = () => {
