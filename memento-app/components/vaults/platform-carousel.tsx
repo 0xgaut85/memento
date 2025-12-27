@@ -83,9 +83,9 @@ export const VAULT_PLATFORMS: Record<string, Platform[]> = {
     { name: "TotalEnergies", logo: "/TotalEnergies.jpeg" },
     { name: "Santander", logo: "/Santander.png" },
     { name: "AXA", logo: "/Axa.png" },
-    { name: "Ford", logo: "/Ford.png" },
-    { name: "SDIV", logo: "/SDIV.png" },
-    { name: "KWBD", logo: "/KWBD.png" },
+    { name: "Ford", logo: "/Ford.jpeg" },
+    { name: "SDIV", logo: "/SDIV Etf.png" },
+    { name: "KWBD", logo: "/KBW Etf.png" },
     { name: "JEPI ETF", logo: "/JEPI.png" },
   ],
   // Vault 02: Basis & Funding Arbitrage
