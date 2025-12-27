@@ -79,9 +79,7 @@ export function useVaults() {
 
   useEffect(() => {
     fetchVaults();
-    // Refresh every 30 seconds for APY updates
-    const interval = setInterval(fetchVaults, 30000);
-    return () => clearInterval(interval);
+    // No auto-refresh - APY updates naturally when user refreshes
   }, [fetchVaults]);
 
   return { vaults, loading, error, refetch: fetchVaults };
@@ -113,8 +111,7 @@ export function useVault(vaultId: string) {
 
   useEffect(() => {
     fetchVault();
-    const interval = setInterval(fetchVault, 30000);
-    return () => clearInterval(interval);
+    // No auto-refresh - updates naturally when user refreshes
   }, [fetchVault]);
 
   return { vault, loading, error, refetch: fetchVault };
@@ -151,9 +148,7 @@ export function useUserPositions(address: string | null) {
 
   useEffect(() => {
     fetchPositions();
-    // Refresh every 10 seconds for reward updates
-    const interval = setInterval(fetchPositions, 10000);
-    return () => clearInterval(interval);
+    // No auto-refresh - updates naturally when user refreshes
   }, [fetchPositions]);
 
   return { data, loading, error, refetch: fetchPositions };
