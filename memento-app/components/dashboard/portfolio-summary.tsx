@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Wallet, TrendingUp, Clock, ArrowUpRight, PiggyBank } from "lucide-react";
+import { Wallet, Clock, TrendingUp } from "lucide-react";
+import Image from "next/image";
 import { UserData } from "@/lib/hooks/use-vault";
 
 interface PortfolioSummaryProps {
@@ -32,9 +33,18 @@ export function PortfolioSummary({ userData }: PortfolioSummaryProps) {
           </div>
           <span className="text-sm text-black/50">Total Deposited</span>
         </div>
-        <p className="text-3xl font-bold font-mono">
-          ${totals.deposited.toFixed(2)}
-        </p>
+        <div className="flex items-center gap-2">
+          <Image
+            src="/cryptologo/USDC.png"
+            alt="USDC"
+            width={24}
+            height={24}
+            className="w-6 h-6"
+          />
+          <p className="text-3xl font-bold font-mono">
+            {totals.deposited.toFixed(2)}
+          </p>
+        </div>
         <p className="text-xs text-black/40 mt-1">
           Across {userData.positions.length} vault{userData.positions.length !== 1 ? "s" : ""}
         </p>
@@ -45,20 +55,28 @@ export function PortfolioSummary({ userData }: PortfolioSummaryProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="bg-gradient-to-br from-emerald-50 to-white border border-emerald-100 p-6 shadow-sm"
+        className="bg-white border border-black/5 p-6 shadow-sm"
       >
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-emerald-600 flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 bg-black/10 flex items-center justify-center">
+            <Image
+              src="/cryptologo/USDC.png"
+              alt="USDC"
+              width={20}
+              height={20}
+              className="w-5 h-5"
+            />
           </div>
-          <span className="text-sm text-emerald-700/70">Pending Rewards</span>
+          <span className="text-sm text-black/50">Pending Rewards</span>
         </div>
-        <p className="text-3xl font-bold font-mono text-emerald-600">
-          ${totals.pendingRewards.toFixed(4)}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-3xl font-bold font-mono">
+            +{totals.pendingRewards.toFixed(4)}
+          </p>
+        </div>
         <div className="flex items-center gap-1 mt-1">
-          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-          <p className="text-xs text-emerald-600/70">Streaming in real-time</p>
+          <div className="w-1.5 h-1.5 bg-black rounded-full animate-pulse" />
+          <p className="text-xs text-black/40">Streaming</p>
         </div>
       </motion.div>
 
@@ -70,16 +88,25 @@ export function PortfolioSummary({ userData }: PortfolioSummaryProps) {
         className="bg-white border border-black/5 p-6 shadow-sm"
       >
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-purple-600 flex items-center justify-center">
+          <div className="w-10 h-10 bg-black flex items-center justify-center">
             <Clock className="w-5 h-5 text-white" />
           </div>
           <span className="text-sm text-black/50">Total Claimed</span>
         </div>
-        <p className="text-3xl font-bold font-mono">
-          ${totals.totalClaimed.toFixed(2)}
-        </p>
+        <div className="flex items-center gap-2">
+          <Image
+            src="/cryptologo/USDC.png"
+            alt="USDC"
+            width={24}
+            height={24}
+            className="w-6 h-6"
+          />
+          <p className="text-3xl font-bold font-mono">
+            {totals.totalClaimed.toFixed(2)}
+          </p>
+        </div>
         <p className="text-xs text-black/40 mt-1">
-          Lifetime earnings claimed
+          Lifetime earnings
         </p>
       </motion.div>
 
@@ -91,8 +118,8 @@ export function PortfolioSummary({ userData }: PortfolioSummaryProps) {
         className="bg-white border border-black/5 p-6 shadow-sm"
       >
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-amber-500 flex items-center justify-center">
-            <PiggyBank className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 bg-black flex items-center justify-center">
+            <TrendingUp className="w-5 h-5 text-white" />
           </div>
           <span className="text-sm text-black/50">Total Return</span>
         </div>
@@ -106,4 +133,3 @@ export function PortfolioSummary({ userData }: PortfolioSummaryProps) {
     </div>
   );
 }
-

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { Wallet, LayoutDashboard, ArrowUpRight } from "lucide-react";
+import { Wallet, ArrowUpRight } from "lucide-react";
 import { PageWrapper } from "@/components/layout/page-wrapper";
 import { PasswordGate } from "@/components/vaults/password-gate";
 import { PortfolioSummary } from "@/components/dashboard/portfolio-summary";
@@ -72,10 +72,7 @@ export default function DashboardPage() {
             className="flex items-center justify-between"
           >
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <LayoutDashboard className="w-6 h-6 text-purple-600" />
-                <p className="text-sm font-mono text-purple-600">DASHBOARD</p>
-              </div>
+              <p className="text-xs font-mono text-black/40 tracking-widest mb-2">DASHBOARD</p>
               <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
                 Your Portfolio
               </h1>

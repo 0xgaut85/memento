@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 interface RewardCounterProps {
   depositAmount: number;
@@ -51,9 +52,9 @@ export function RewardCounter({
   }, [depositAmount, apyPercent, lastClaimAt]);
 
   const sizeClasses = {
-    sm: { value: "text-lg", label: "text-xs" },
-    md: { value: "text-2xl", label: "text-sm" },
-    lg: { value: "text-4xl", label: "text-base" },
+    sm: { value: "text-lg", label: "text-xs", icon: 14 },
+    md: { value: "text-2xl", label: "text-sm", icon: 18 },
+    lg: { value: "text-4xl", label: "text-base", icon: 24 },
   };
 
   // Format with many decimal places for streaming effect
@@ -71,16 +72,22 @@ export function RewardCounter({
     <div className="space-y-2">
       {/* Pending Rewards */}
       <div>
-        <div className="flex items-baseline gap-1">
+        <div className="flex items-center gap-2">
+          <Image
+            src="/cryptologo/USDC.png"
+            alt="USDC"
+            width={sizeClasses[size].icon}
+            height={sizeClasses[size].icon}
+            className="shrink-0"
+          />
           <motion.span
             key={formatReward(pendingRewards)}
             initial={{ opacity: 0.8 }}
             animate={{ opacity: 1 }}
-            className={`font-mono font-bold tabular-nums text-emerald-600 ${sizeClasses[size].value}`}
+            className={`font-mono font-bold tabular-nums text-black ${sizeClasses[size].value}`}
           >
-            {formatReward(pendingRewards)}
+            +{formatReward(pendingRewards)}
           </motion.span>
-          <span className={`text-emerald-500/70 ${sizeClasses[size].label}`}>USDC</span>
         </div>
         <p className={`text-black/40 ${sizeClasses[size].label}`}>
           Pending rewards
@@ -128,14 +135,20 @@ export function MiniRewardCounter({
     };
 
     calculateRewards();
-    const interval = setInterval(calculateRewards, 1000);
+    const interval = setInterval(calculateRewards, 100);
     return () => clearInterval(interval);
   }, [depositAmount, apyPercent, lastClaimAt]);
 
   return (
-    <span className="font-mono text-emerald-600 font-medium tabular-nums">
-      +${pendingRewards < 0.01 ? pendingRewards.toFixed(4) : pendingRewards.toFixed(2)}
+    <span className="font-mono text-black font-medium tabular-nums flex items-center gap-1">
+      <Image
+        src="/cryptologo/USDC.png"
+        alt="USDC"
+        width={12}
+        height={12}
+        className="w-3 h-3"
+      />
+      +{pendingRewards < 0.01 ? pendingRewards.toFixed(4) : pendingRewards.toFixed(2)}
     </span>
   );
 }
-

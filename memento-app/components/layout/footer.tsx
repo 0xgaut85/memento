@@ -24,6 +24,9 @@ export function Footer() {
               <Link href="https://memento.money" target="_blank" className="hover:text-foreground transition-colors">
                 Website
               </Link>
+              <Link href="/docs" className="hover:text-foreground transition-colors">
+                Docs
+              </Link>
               <Link href="https://x.com/mementodotmoney" target="_blank" className="hover:text-foreground transition-colors">
                 Twitter
               </Link>
