@@ -10,6 +10,7 @@ import express from 'express';
 import path from 'path';
 import { X402PaymentHandler } from 'x402-solana/server';
 import { PrismaClient } from '@prisma/client';
+import vaultRoutes from './routes/vaults';
 
 config();
 
@@ -75,6 +76,9 @@ app.use(express.json());
 app.use('/public', express.static(path.join(__dirname, 'public')));
 app.get('/favicon.ico', (_req, res) => res.redirect('/public/favicon.png'));
 app.get('/favicon.png', (_req, res) => res.redirect('/public/favicon.png'));
+
+// Vault routes
+app.use('/vaults', vaultRoutes);
 
 // x402 Discovery endpoint (v1 format)
 app.get('/.well-known/x402', (_req, res) => {

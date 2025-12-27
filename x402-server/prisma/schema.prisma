@@ -72,6 +72,59 @@ model Payment {
   @@index([createdAt])
 }
 
+// ============ VAULT SYSTEM ============
+
+// Vault model - represents each yield vault
+model Vault {
+  id              String   @id // "01", "02", "03", "04"
+  name            String
+  description     String
+  apyMin          Float
+  apyMax          Float
+  maxTvl          Float    @default(100000)   // 100k USDC max per vault
+  maxPerUser      Float    @default(5000)     // 5k USDC max per user
+  treasuryAddress String   // Public address of vault treasury
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  deposits        VaultDeposit[]
+  transactions    VaultTransaction[]
+}
+
+// VaultDeposit model - tracks user deposits in vaults
+model VaultDeposit {
+  id              String   @id @default(cuid())
+  vaultId         String
+  vault           Vault    @relation(fields: [vaultId], references: [id])
+  userAddress     String
+  amount          Float    // USDC deposited (after 1.5% fee)
+  depositedAt     DateTime @default(now())
+  lastClaimAt     DateTime @default(now())
+  totalClaimed    Float    @default(0)
+
+  @@unique([vaultId, userAddress])
+  @@index([userAddress])
+}
+
+// VaultTransaction model - tracks all vault transactions
+model VaultTransaction {
+  id          String   @id @default(cuid())
+  vaultId     String
+  vault       Vault    @relation(fields: [vaultId], references: [id])
+  userAddress String
+  type        String   // "deposit", "withdraw", "claim", "fee"
+  amount      Float
+  fee         Float?   // Fee amount (for deposit/withdraw)
+  txSignature String
+  status      String   @default("completed") // pending, completed, failed
+  createdAt   DateTime @default(now())
+
+  @@index([vaultId])
+  @@index([userAddress])
+  @@index([type])
+  @@index([createdAt])
+}
+
 
 
 
