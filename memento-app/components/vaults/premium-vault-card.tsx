@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Users, DollarSign, ArrowUpRight, Lock } from "lucide-react";
 import { Vault, UserPosition } from "@/lib/hooks/use-vault";
 import Image from "next/image";
+import { PlatformCarousel, VAULT_PLATFORMS } from "./platform-carousel";
 
 interface PremiumVaultCardProps {
   vault: Vault;
@@ -64,16 +65,16 @@ function StreamingRewards({
 
   return (
     <div className="flex items-center gap-2">
+      <span className="font-mono font-semibold text-black tabular-nums">
+        +{formatReward(pendingRewards)}
+      </span>
       <Image
         src="/cryptologo/USDC.png"
         alt="USDC"
         width={16}
         height={16}
-        className="w-4 h-4"
+        className="w-4 h-4 rounded-full"
       />
-      <span className="font-mono font-semibold text-black tabular-nums">
-        +{formatReward(pendingRewards)}
-      </span>
     </div>
   );
 }
@@ -290,7 +291,7 @@ export function PremiumVaultCard({
                 alt="USDC"
                 width={12}
                 height={12}
-                className="w-3 h-3"
+                className="w-3 h-3 rounded-full"
               />
               <span className="text-[10px] font-medium tracking-wide">PAID</span>
             </div>
@@ -301,7 +302,7 @@ export function PremiumVaultCard({
         </div>
 
         {/* Capacity Bar */}
-        <div className="mb-6">
+        <div className="mb-4">
           <div className="flex items-center justify-between text-[10px] mb-1.5">
             <span className="text-black/40 font-medium tracking-wide">CAPACITY</span>
             <span className="font-mono font-bold text-black">{vault.capacityPercent}%</span>
@@ -316,6 +317,13 @@ export function PremiumVaultCard({
           </div>
         </div>
 
+        {/* Platform Carousel */}
+        {VAULT_PLATFORMS[vault.id] && VAULT_PLATFORMS[vault.id].length > 0 && (
+          <div className="mb-4 bg-black/[0.02] p-3 -mx-2">
+            <PlatformCarousel platforms={VAULT_PLATFORMS[vault.id]} />
+          </div>
+        )}
+
         {/* User Position (if has deposit) */}
         {isConnected && hasDeposit && userPosition && !comingSoon && (
           <div className="bg-black/[0.03] border border-black/5 p-4 mb-4 -mx-2">
@@ -324,16 +332,16 @@ export function PremiumVaultCard({
                 YOUR POSITION
               </span>
               <div className="flex items-center gap-1.5">
+                <span className="text-lg font-bold font-mono text-black">
+                  {userPosition.depositAmount.toFixed(2)}
+                </span>
                 <Image
                   src="/cryptologo/USDC.png"
                   alt="USDC"
                   width={14}
                   height={14}
-                  className="w-3.5 h-3.5"
+                  className="w-3.5 h-3.5 rounded-full"
                 />
-                <span className="text-lg font-bold font-mono text-black">
-                  {userPosition.depositAmount.toFixed(2)}
-                </span>
               </div>
             </div>
             <div className="flex items-center justify-between text-xs">

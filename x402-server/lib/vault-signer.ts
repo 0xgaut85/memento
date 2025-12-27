@@ -21,6 +21,10 @@ const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || 'https://mainnet.helius-rpc
 // Fee wallet address (where 1.5% fees go)
 const FEE_WALLET_ADDRESS = process.env.FEE_WALLET_ADDRESS || '';
 
+// Rewards wallet private key (separate wallet for paying out rewards)
+// If not set, rewards will be paid from vault treasury
+const REWARDS_WALLET_PRIVATE_KEY = process.env.REWARDS_WALLET_PRIVATE_KEY || '';
+
 // Vault private key env var names
 const VAULT_KEY_ENV_VARS: Record<string, string> = {
   '01': 'VAULT_01_PRIVATE_KEY',
@@ -68,6 +72,31 @@ export function getVaultAddress(vaultId: string): string | null {
   const keypair = getVaultKeypair(vaultId);
   if (!keypair) return null;
   return keypair.publicKey.toString();
+}
+
+/**
+ * Get the Rewards Wallet Keypair (for paying out rewards)
+ * Falls back to null if not configured
+ */
+export function getRewardsWalletKeypair(): Keypair | null {
+  if (!REWARDS_WALLET_PRIVATE_KEY) {
+    return null;
+  }
+
+  try {
+    // Try base58 decode first (standard Solana format)
+    const decoded = bs58.decode(REWARDS_WALLET_PRIVATE_KEY);
+    return Keypair.fromSecretKey(decoded);
+  } catch {
+    try {
+      // Try base64 decode as fallback
+      const decoded = Buffer.from(REWARDS_WALLET_PRIVATE_KEY, 'base64');
+      return Keypair.fromSecretKey(decoded);
+    } catch (e) {
+      console.error('[VaultSigner] Failed to decode rewards wallet private key:', e);
+      return null;
+    }
+  }
 }
 
 /**
@@ -271,23 +300,30 @@ export async function sendVaultWithdrawal(
 }
 
 /**
- * Send USDC from vault to user (for reward claims - no fee)
+ * Send USDC from rewards wallet to user (for reward claims - no fee)
+ * Uses dedicated rewards wallet if configured, otherwise falls back to vault treasury
  */
 export async function sendVaultClaim(
   vaultId: string,
   recipientAddress: string,
   amount: number
 ): Promise<{ success: boolean; txSignature?: string; error?: string }> {
-  const keypair = getVaultKeypair(vaultId);
+  // Try to use rewards wallet first, fall back to vault treasury
+  const rewardsKeypair = getRewardsWalletKeypair();
+  const vaultKeypair = getVaultKeypair(vaultId);
+  
+  const keypair = rewardsKeypair || vaultKeypair;
+  const sourceType = rewardsKeypair ? 'rewards wallet' : 'vault treasury';
+  
   if (!keypair) {
-    return { success: false, error: 'Vault keypair not found' };
+    return { success: false, error: 'No keypair found for rewards (neither rewards wallet nor vault treasury)' };
   }
 
   const connection = getConnection();
   const amountMicro = Math.floor(amount * 1_000_000);
 
   try {
-    const vaultAta = await getAssociatedTokenAddress(USDC_MINT, keypair.publicKey);
+    const sourceAta = await getAssociatedTokenAddress(USDC_MINT, keypair.publicKey);
     const recipientPubkey = new PublicKey(recipientAddress);
     const recipientAta = await getAssociatedTokenAddress(USDC_MINT, recipientPubkey);
 
@@ -310,7 +346,7 @@ export async function sendVaultClaim(
     // Transfer reward amount to recipient
     transaction.add(
       createTransferInstruction(
-        vaultAta,
+        sourceAta,
         recipientAta,
         keypair.publicKey,
         amountMicro
@@ -322,7 +358,7 @@ export async function sendVaultClaim(
       commitment: 'confirmed',
     });
 
-    console.log(`[VaultSigner] Claim sent: ${txSignature}, Amount: ${amount} USDC`);
+    console.log(`[VaultSigner] Claim sent from ${sourceType}: ${txSignature}, Amount: ${amount} USDC`);
 
     return { success: true, txSignature };
   } catch (e) {

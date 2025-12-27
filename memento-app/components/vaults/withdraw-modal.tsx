@@ -200,9 +200,9 @@ export function WithdrawModal({
                 <div className="w-16 h-16 mx-auto mb-4 bg-emerald-100 rounded-full flex items-center justify-center">
                   <Check className="w-8 h-8 text-emerald-600" />
                 </div>
-                <p className="font-semibold text-emerald-600">Withdrawal Successful!</p>
+                <p className="font-semibold text-emerald-600">Successfully Withdrawn!</p>
                 <p className="text-sm text-black/50 mt-1">
-                  ${netWithdraw.toFixed(2)} USDC sent to your wallet
+                  ${netWithdraw.toFixed(2)} USDC received
                 </p>
                 {txSignature && (
                   <a

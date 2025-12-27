@@ -73,13 +73,6 @@ export function RewardCounter({
       {/* Pending Rewards */}
       <div>
         <div className="flex items-center gap-2">
-          <Image
-            src="/cryptologo/USDC.png"
-            alt="USDC"
-            width={sizeClasses[size].icon}
-            height={sizeClasses[size].icon}
-            className="shrink-0"
-          />
           <motion.span
             key={formatReward(pendingRewards)}
             initial={{ opacity: 0.8 }}
@@ -88,6 +81,13 @@ export function RewardCounter({
           >
             +{formatReward(pendingRewards)}
           </motion.span>
+          <Image
+            src="/cryptologo/USDC.png"
+            alt="USDC"
+            width={sizeClasses[size].icon}
+            height={sizeClasses[size].icon}
+            className="shrink-0 rounded-full"
+          />
         </div>
         <p className={`text-black/40 ${sizeClasses[size].label}`}>
           Pending rewards
@@ -141,14 +141,14 @@ export function MiniRewardCounter({
 
   return (
     <span className="font-mono text-black font-medium tabular-nums flex items-center gap-1">
+      +{pendingRewards < 0.01 ? pendingRewards.toFixed(4) : pendingRewards.toFixed(2)}
       <Image
         src="/cryptologo/USDC.png"
         alt="USDC"
         width={12}
         height={12}
-        className="w-3 h-3"
+        className="w-3 h-3 rounded-full"
       />
-      +{pendingRewards < 0.01 ? pendingRewards.toFixed(4) : pendingRewards.toFixed(2)}
     </span>
   );
 }

@@ -70,7 +70,7 @@ export function VaultPositions({ positions, onClaim, onWithdraw }: VaultPosition
                   </span>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="font-mono text-emerald-600 font-medium">
+                  <span className="font-mono text-black font-medium">
                     {position.currentApy.toFixed(2)}%
                   </span>
                 </td>
@@ -90,7 +90,7 @@ export function VaultPositions({ positions, onClaim, onWithdraw }: VaultPosition
                   <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => onClaim(position.vaultId)}
-                      className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
+                      className="px-3 py-1.5 bg-black text-white text-xs font-semibold hover:bg-black/90 transition-colors"
                     >
                       Claim
                     </button>
